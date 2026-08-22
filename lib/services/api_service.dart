@@ -47,6 +47,16 @@ class ApiService {
     };
   }
 
+  /// Authenticated GET that retries once with a fresh token on a 401,
+  /// following the same refresh pattern the write calls use.
+  static Future<http.Response> _authorizedGet(String url) async {
+    var res = await http.get(Uri.parse(url), headers: await _authHeaders());
+    if (res.statusCode == 401 && await _tryRefreshToken()) {
+      res = await http.get(Uri.parse(url), headers: await _authHeaders());
+    }
+    return res;
+  }
+
   static Future<bool> _tryRefreshToken() async {
     final prefs = await SharedPreferences.getInstance();
     final refreshToken = prefs.getString(_refreshKey);
@@ -99,6 +109,7 @@ class ApiService {
     String firstName = '',
     String lastName = '',
     String address = '',
+    String referralCode = '',
   }) async {
     final res = await http.post(
       Uri.parse('$kApiBaseUrl/auth/verify-otp/'),
@@ -109,6 +120,7 @@ class ApiService {
         'first_name': firstName,
         'last_name': lastName,
         'address': address,
+        'referral_code': referralCode,
       }),
     );
     if (res.statusCode == 200) {
@@ -340,6 +352,85 @@ class ApiService {
       throw Exception(_extractFirstError(jsonDecode(res.body)));
     }
   }
+  // ---------- Header Carousel ----------
+
+  static Future<List<dynamic>> getHeaderBanners() async {
+    final res = await http.get(
+      Uri.parse('$kApiBaseUrl/promotions/header-banners/'),
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    return []; // non-critical, return empty on failure
+  }
+
+  // ---------- Personalised rows ----------
+
+  /// Services this customer opened before, newest first.
+  static Future<List<dynamic>> getRecentlyViewed() async {
+    try {
+      final res = await _authorizedGet('$kApiBaseUrl/customers/recently-viewed/');
+      if (res.statusCode == 200) return jsonDecode(res.body);
+    } catch (_) {}
+    return [];
+  }
+
+  /// Services this customer has booked before, most-booked first.
+  static Future<List<dynamic>> getBookAgain() async {
+    try {
+      final res = await _authorizedGet('$kApiBaseUrl/customers/book-again/');
+      if (res.statusCode == 200) return jsonDecode(res.body);
+    } catch (_) {}
+    return [];
+  }
+
+  /// Remembers that the customer opened a service. Fire-and-forget — a failed
+  /// call must never get in the way of viewing the service itself.
+  static Future<void> recordServiceView(int serviceId) async {
+    try {
+      var headers = await _authHeaders();
+      final url = Uri.parse('$kApiBaseUrl/customers/recently-viewed/');
+      final body = jsonEncode({'service_id': serviceId});
+      var res = await http.post(url, headers: headers, body: body);
+      if (res.statusCode == 401 && await _tryRefreshToken()) {
+        headers = await _authHeaders();
+        await http.post(url, headers: headers, body: body);
+      }
+    } catch (_) {}
+  }
+
+  // ---------- Refer & Earn ----------
+
+  /// The customer's referral code plus all the admin-managed copy and their
+  /// earnings so far. Returns null when the call fails or the programme is
+  /// switched off, so callers can simply hide the banner.
+  static Future<Map<String, dynamic>?> getReferralInfo() async {
+    try {
+      final res = await _authorizedGet('$kApiBaseUrl/referrals/me/');
+      if (res.statusCode != 200) return null;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      return data['is_active'] == true ? data : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<List<dynamic>> getMyReferrals() async {
+    try {
+      final res = await _authorizedGet('$kApiBaseUrl/referrals/my-referrals/');
+      if (res.statusCode == 200) return jsonDecode(res.body);
+    } catch (_) {}
+    return [];
+  }
+
+  // ---------- Promo Cards ----------
+
+  static Future<List<dynamic>> getPromoCards() async {
+    final res = await http.get(
+      Uri.parse('$kApiBaseUrl/promotions/promo-cards/'),
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    return []; // non-critical, return empty on failure
+  }
+
   // ---------- Spotlights ----------
 
   static Future<List<dynamic>> getSpotlights() async {

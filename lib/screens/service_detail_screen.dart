@@ -53,6 +53,8 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
     _cart.addListener(_onCartChanged);
     _loadReviews();
     _loadDiscount();
+    // Feeds the "Recently viewed" row on the home page.
+    ApiService.recordServiceView(widget.serviceId);
   }
 
   int _lastItemCount = -1;

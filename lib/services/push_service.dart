@@ -76,12 +76,29 @@ class PushService {
     }
   }
 
+  /// iOS only: FCM cannot mint a token until APNs has handed one to the app,
+  /// which lands a moment after launch. Calling getToken() before that throws
+  /// "APNS token has not been set yet". On Android the token is ready straight
+  /// away, which is why this never shows up in Android testing — on iPhone it
+  /// meant the device was never registered and no push ever arrived.
+  static Future<bool> _apnsReady() async {
+    if (!Platform.isIOS) return true;
+    for (var attempt = 0; attempt < 10; attempt++) {
+      final apns = await FirebaseMessaging.instance.getAPNSToken();
+      if (apns != null && apns.isNotEmpty) return true;
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+    debugPrint('APNs token never arrived - push disabled on this device.');
+    return false;
+  }
+
   // ------------------------------------------------------------------ tokens
   /// Call after a successful login, and on startup when already logged in.
   /// Registration needs a valid JWT, so it can't happen before auth.
   static Future<void> registerToken() async {
     try {
       if (!await ApiService.isLoggedIn()) return;
+      if (!await _apnsReady()) return;
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.isEmpty) return;
       await NotificationService.instance.registerDevice(

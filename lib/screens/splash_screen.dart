@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/branding_service.dart';
+import '../widgets/app_logo.dart';
 import 'main_navigation_screen.dart';
 import 'phone_entry_screen.dart';
 
@@ -78,21 +80,28 @@ class _SplashScreenState extends State<SplashScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset('assets/logo.png', width: 300, height: 300),
-                const SizedBox(height: 24),
-                const Text(
-                  'Home Service',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF6A1B9A),
-                    letterSpacing: 1,
+                BrandingBuilder(
+                  builder: (context) => Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const AppLogo(size: 300),
+                      const SizedBox(height: 24),
+                      Text(
+                        BrandingService.appName ?? 'Home Service',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF6A1B9A),
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        BrandingService.tagline ?? 'Services at your doorstep',
+                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Services at your doorstep',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ],
             ),

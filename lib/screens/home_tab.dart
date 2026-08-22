@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import '../services/cart_service.dart';
 import '../theme.dart';
-import '../widgets/banner_card.dart';
+import '../widgets/header_carousel.dart';
 import '../widgets/spotlight_section.dart';
 import '../widgets/category_grid.dart';
 import 'service_list_screen.dart';
@@ -11,9 +12,12 @@ import '../widgets/home_sections_widget.dart';
 import '../widgets/curation_section_widget.dart';
 import 'search_screen.dart';
 import '../utils/profile_gate.dart';
+import '../utils/location_update.dart';
 import 'package:geolocator/geolocator.dart';
 import '../widgets/gps_prompt_sheet.dart';
 import '../widgets/notification_bell.dart';
+import '../widgets/refer_banner.dart';
+import '../widgets/personalized_row.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -29,7 +33,13 @@ class _HomeTabState extends State<HomeTab> {
   List<dynamic> _spotlights = [];
   List<dynamic> _homeSections = [];
   List<dynamic> _curations = [];
+  List<dynamic> _headerBanners = [];
+  List<dynamic> _promoCards = [];
+  Map<String, dynamic>? _referralInfo;
+  List<dynamic> _recentlyViewed = [];
+  List<dynamic> _bookAgain = [];
   String? _customerFirstName;
+  String? _customerAddress;
   final _cart = CartService();
 
   @override
@@ -37,6 +47,10 @@ class _HomeTabState extends State<HomeTab> {
     super.initState();
     _categoriesFuture = _loadCategories();
     _loadProfileName();
+    _loadHeaderBanners();
+    _loadPromoCards();
+    _loadReferralInfo();
+    _loadPersonalizedRows();
     _loadSpotlights();
     _loadHomeSections();
     _loadCurations();
@@ -73,8 +87,52 @@ class _HomeTabState extends State<HomeTab> {
   Future<void> _loadProfileName() async {
     try {
       final profile = await ApiService.getMyProfile();
-      if (mounted) setState(() => _customerFirstName = profile['first_name']);
+      if (mounted) {
+        setState(() {
+          _customerFirstName = profile['first_name'];
+          _customerAddress = profile['address'];
+        });
+      }
     } catch (_) {}
+  }
+
+  Future<void> _loadHeaderBanners() async {
+    try {
+      final data = await ApiService.getHeaderBanners();
+      if (mounted) setState(() => _headerBanners = data);
+    } catch (_) {}
+  }
+
+  Future<void> _loadPromoCards() async {
+    try {
+      final data = await ApiService.getPromoCards();
+      if (mounted) setState(() => _promoCards = data);
+    } catch (_) {}
+  }
+
+  Future<void> _loadReferralInfo() async {
+    final info = await ApiService.getReferralInfo();
+    if (mounted) setState(() => _referralInfo = info);
+  }
+
+  Future<void> _loadPersonalizedRows() async {
+    final recent = await ApiService.getRecentlyViewed();
+    final again = await ApiService.getBookAgain();
+    if (mounted) {
+      setState(() {
+        _recentlyViewed = recent;
+        _bookAgain = again;
+      });
+    }
+  }
+
+  /// Opens the map picker and saves whatever the customer confirms back
+  /// onto their profile, so the hero header stays in sync.
+  Future<void> _changeLocation() async {
+    final newAddress = await pickAndSaveLocation(context);
+    if (newAddress != null && mounted) {
+      setState(() => _customerAddress = newAddress);
+    }
   }
 
   Future<void> _captureAndSaveLocation() async {
@@ -129,6 +187,10 @@ class _HomeTabState extends State<HomeTab> {
     setState(() {
       _categoriesFuture = _loadCategories();
     });
+    _loadHeaderBanners();
+    _loadPromoCards();
+    _loadReferralInfo();
+    _loadPersonalizedRows();
     _loadSpotlights();
     _loadHomeSections();
     _loadCurations();
@@ -157,7 +219,9 @@ class _HomeTabState extends State<HomeTab> {
     }
   }
 
-  Future<void> _onSpotlightTap(Map<String, dynamic> banner) async {
+  /// Shared by the hero carousel and the spotlight cards — both carry
+  /// `category` / `subcategory` ids pointing at where the tap should land.
+  Future<void> _onBannerTap(Map<String, dynamic> banner) async {
     final categoryId = banner['category'];
     final subcategoryId = banner['subcategory'];
     if (categoryId == null) return;
@@ -488,136 +552,203 @@ class _HomeTabState extends State<HomeTab> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _refresh,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(0, 12, 0, 24),
-            children: [
-              // --- Header ---
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _customerFirstName != null
-                                ? 'Hi, $_customerFirstName 👋'
-                                : 'Welcome 👋',
-                            style: Theme.of(context).textTheme.headlineSmall,
+  /// Coloured hero at the top of the home screen: greeting + saved address,
+  /// the search entry point, and the admin-managed promo carousel.
+  Widget _buildHero(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        0,
+        MediaQuery.of(context).padding.top + 14,
+        0,
+        _headerBanners.isEmpty ? 22 : 18,
+      ),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.primary, AppColors.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // --- Greeting + location + actions ---
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _changeLocation,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _customerFirstName != null &&
+                                  _customerFirstName!.isNotEmpty
+                              ? 'Hi, $_customerFirstName 👋'
+                              : 'Welcome 👋',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'What service do you need today?',
-                            style: TextStyle(
-                              color: AppColors.textGrey,
-                              fontSize: 13,
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.location_on,
+                              color: Colors.white,
+                              size: 15,
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const NotificationBell(),
-                    const SizedBox(width: 10),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const CartScreen()),
-                      ),
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          CircleAvatar(
-                            radius: 22,
-                            backgroundColor: AppColors.primary.withValues(
-                              alpha: 0.12,
-                            ),
-                            child: const Icon(
-                              Icons.shopping_cart_outlined,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          if (_cart.totalItems > 0)
-                            Positioned(
-                              right: -4,
-                              top: -4,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 18,
-                                  minHeight: 18,
-                                ),
-                                child: Text(
-                                  '${_cart.totalItems}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  textAlign: TextAlign.center,
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                _customerAddress != null &&
+                                        _customerAddress!.isNotEmpty
+                                    ? _customerAddress!
+                                    : 'Set your location',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  fontSize: 13,
                                 ),
                               ),
                             ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // --- Search ---
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SearchScreen()),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.search, color: AppColors.textGrey),
-                        SizedBox(width: 12),
-                        Text(
-                          'Search for a service (e.g. Plumbing)',
-                          style: TextStyle(
-                            color: AppColors.textGrey,
-                            fontSize: 14,
-                          ),
+                            Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Colors.white.withValues(alpha: 0.9),
+                              size: 18,
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(width: 8),
 
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: BannerCard(),
+                NotificationBell(
+                  backgroundColor: Colors.white.withValues(alpha: 0.18),
+                  iconColor: Colors.white,
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
+                  ),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      CircleAvatar(
+                        radius: 22,
+                        backgroundColor: Colors.white.withValues(alpha: 0.18),
+                        child: const Icon(
+                          Icons.shopping_cart_outlined,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (_cart.totalItems > 0)
+                        Positioned(
+                          right: -4,
+                          top: -4,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 18,
+                              minHeight: 18,
+                            ),
+                            child: Text(
+                              '${_cart.totalItems}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // --- Search ---
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SearchScreen()),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.search, color: AppColors.textGrey),
+                    SizedBox(width: 12),
+                    Text(
+                      'Search for a service (e.g. Plumbing)',
+                      style: TextStyle(color: AppColors.textGrey, fontSize: 14),
+                    ),
+                  ],
+                ),
               ),
+            ),
+          ),
+
+          // --- Admin-managed promo carousel ---
+          if (_headerBanners.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: HeaderCarousel(
+                banners: _headerBanners,
+                onTap: _onBannerTap,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        body: RefreshIndicator(
+          onRefresh: _refresh,
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 24),
+            children: [
+              _buildHero(context),
               const SizedBox(height: 24),
 
               // --- Categories ---
@@ -692,11 +823,33 @@ class _HomeTabState extends State<HomeTab> {
               const SizedBox(height: 24),
 
               // These go edge-to-edge — NO horizontal padding wrapper
-              SpotlightSection(spotlights: _spotlights, onTap: _onSpotlightTap),
+              SpotlightSection(spotlights: _spotlights, onTap: _onBannerTap),
 
-              HomeSectionsWidget(sections: _homeSections),
+              PersonalizedRow(
+                title: 'Book again',
+                subtitle: 'Services you have booked before',
+                services: _bookAgain,
+                showTimesBooked: true,
+              ),
+
+              PersonalizedRow(
+                title: 'Recently viewed',
+                services: _recentlyViewed,
+              ),
+
+              HomeSectionsWidget(
+                sections: _homeSections,
+                promoCards: _promoCards,
+                onPromoTap: _onBannerTap,
+              ),
 
               CurationSectionWidget(sections: _curations),
+
+              // --- Refer & earn, closing out the page ---
+              if (_referralInfo != null) ...[
+                const SizedBox(height: 8),
+                ReferBanner(info: _referralInfo!),
+              ],
             ],
           ),
         ),

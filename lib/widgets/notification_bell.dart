@@ -12,7 +12,13 @@ import '../theme.dart';
 /// The badge updates itself anywhere the widget appears — it listens to the
 /// same ValueNotifier the service keeps, so no state management is needed.
 class NotificationBell extends StatefulWidget {
-  const NotificationBell({super.key});
+  /// Circle colour behind the bell. Defaults to the light tint used on
+  /// white backgrounds; pass a translucent white when sitting on the
+  /// coloured hero header.
+  final Color? backgroundColor;
+  final Color? iconColor;
+
+  const NotificationBell({super.key, this.backgroundColor, this.iconColor});
 
   @override
   State<NotificationBell> createState() => _NotificationBellState();
@@ -43,10 +49,12 @@ class _NotificationBellState extends State<NotificationBell> {
             children: [
               CircleAvatar(
                 radius: 22,
-                backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-                child: const Icon(
+                backgroundColor:
+                    widget.backgroundColor ??
+                    AppColors.primary.withValues(alpha: 0.12),
+                child: Icon(
                   Icons.notifications_none_rounded,
-                  color: AppColors.primary,
+                  color: widget.iconColor ?? AppColors.primary,
                 ),
               ),
               if (count > 0)

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme.dart';
+import '../widgets/app_bottom_nav.dart';
 import 'home_tab.dart';
 import 'my_bookings_screen.dart';
 import 'profile_tab.dart';
@@ -19,7 +19,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   late final List<Widget> _tabs = [
     const HomeTab(),
     const MyBookingsScreen(),
-    ProfileTab(key: _profileKey),
+    ProfileTab(key: _profileKey, onOpenBookings: () => _onTabTapped(1)),
   ];
 
   void _onTabTapped(int index) {
@@ -33,29 +33,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _tabs),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: AppBottomNav(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textGrey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long_outlined),
-            activeIcon: Icon(Icons.receipt_long),
-            label: 'Bookings',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
       ),
     );
   }

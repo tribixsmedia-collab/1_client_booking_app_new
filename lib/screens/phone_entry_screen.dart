@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/app_logo.dart';
 import 'otp_screen.dart';
 
 class PhoneEntryScreen extends StatefulWidget {
@@ -64,13 +65,7 @@ class _PhoneEntryScreenState extends State<PhoneEntryScreen> {
                 const SizedBox(height: 40),
 
                 // Logo
-                Center(
-                  child: Image.asset(
-                    'assets/logo.png',
-                    height: 150,
-                    fit: BoxFit.contain,
-                  ),
-                ),
+                const Center(child: AppLogo(size: 150)),
 
                 const SizedBox(height:0),
 

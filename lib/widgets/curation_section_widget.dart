@@ -139,19 +139,34 @@ class _CurationCardState extends State<_CurationCard> {
   }
 
   void _onVisibilityChanged(VisibilityInfo info) {
-    final visible = info.visibleFraction > 0.3;
+    // Deliberately asymmetric: start only once the card is properly on screen,
+    // but stop as soon as it starts leaving. Decoding video for a card that is
+    // half off-screen competes with the rest of the page for frame budget,
+    // which shows up as stutter while scrolling past.
+    final shouldPlay = info.visibleFraction >= 0.8;
+    final shouldStop = info.visibleFraction < 0.5;
 
-    if (visible && !_isVisible) {
+    if (shouldPlay && !_isVisible) {
       _isVisible = true;
       if (!_initialized) {
         _initVideo();
       } else {
         _controller?.play();
       }
-    } else if (!visible && _isVisible) {
+    } else if (shouldStop && _isVisible) {
       _isVisible = false;
       _controller?.pause();
     }
+  }
+
+  @override
+  void deactivate() {
+    // The home tab lives inside an IndexedStack, so it stays mounted when the
+    // customer switches tabs. Without this the video would keep decoding in
+    // the background.
+    _controller?.pause();
+    _isVisible = false;
+    super.deactivate();
   }
 
   @override

@@ -7,4 +7,4 @@
 //     Find your PC's LAN IP on Windows with: ipconfig  (look for "IPv4 Address")
 //     Also make sure Django runs with: python manage.py runserver 0.0.0.0:8000
 //     (not just runserver, which only listens on localhost)
-const String kApiBaseUrl = "https://home-service-backend-lw7p.onrender.com/api";
+const String kApiBaseUrl = "http://192.168.1.11:8000/api";

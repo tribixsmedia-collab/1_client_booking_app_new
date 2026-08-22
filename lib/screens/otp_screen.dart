@@ -17,6 +17,7 @@ class _OtpScreenState extends State<OtpScreen> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _addressController = TextEditingController();
+  final _referralController = TextEditingController();
 
   bool _isVerifying = false;
   bool _isResending = false;
@@ -62,6 +63,7 @@ class _OtpScreenState extends State<OtpScreen> {
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
         address: _addressController.text.trim(),
+        referralCode: _referralController.text.trim(),
       );
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
@@ -101,6 +103,7 @@ class _OtpScreenState extends State<OtpScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _addressController.dispose();
+    _referralController.dispose();
     super.dispose();
   }
 
@@ -324,6 +327,12 @@ class _OtpScreenState extends State<OtpScreen> {
                         label: 'Address',
                         icon: Icons.location_on_outlined,
                         maxLines: 2,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTextField(
+                        controller: _referralController,
+                        label: 'Referral code (optional)',
+                        icon: Icons.card_giftcard_outlined,
                       ),
                     ],
                   ),

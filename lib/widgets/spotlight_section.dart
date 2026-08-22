@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme.dart';
+import '../utils/image_decode.dart';
 
 class SpotlightSection extends StatelessWidget {
   final List<dynamic> spotlights;
@@ -86,6 +86,7 @@ class _SpotlightCard extends StatelessWidget {
                 child: Image.network(
                   imageUrl!,
                   fit: BoxFit.cover,
+                  cacheWidth: decodeWidthFor(context, 280),
                   errorBuilder: (_, __, ___) =>
                       Container(color: Colors.grey.shade300),
                 ),

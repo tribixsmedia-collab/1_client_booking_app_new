@@ -4,7 +4,11 @@ import '../services/api_service.dart';
 import '../theme.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
-  const CompleteProfileScreen({super.key});
+  /// The same form doubles as "Edit profile" from the profile page — only the
+  /// wording changes, since the fields and the save call are identical.
+  final bool isEditing;
+
+  const CompleteProfileScreen({super.key, this.isEditing = false});
 
   @override
   State<CompleteProfileScreen> createState() => _CompleteProfileScreenState();
@@ -160,15 +164,21 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Complete Your Profile')),
+      appBar: AppBar(
+        title: Text(
+          widget.isEditing ? 'Edit Profile' : 'Complete Your Profile',
+        ),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const Text(
-              'Please fill in your details before placing a booking.',
-              style: TextStyle(color: AppColors.textGrey),
+            Text(
+              widget.isEditing
+                  ? 'Update your details below.'
+                  : 'Please fill in your details before placing a booking.',
+              style: const TextStyle(color: AppColors.textGrey),
             ),
             const SizedBox(height: 20),
 
@@ -270,7 +280,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text('Save & Continue'),
+                  : Text(
+                      widget.isEditing ? 'Save Changes' : 'Save & Continue',
+                    ),
             ),
           ],
         ),
