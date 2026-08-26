@@ -484,6 +484,58 @@ class _CartScreenState extends State<CartScreen> {
                   ],
                 ),
 
+                // The pro the customer picked on a service page or profile.
+                if (_cart.preferredVendorId != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.verified,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Requested pro: ${_cart.preferredVendorName}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: _cart.clearPreferredVendor,
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4),
+                            child: Icon(
+                              Icons.close,
+                              size: 18,
+                              color: AppColors.textGrey,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'We will pass your request on — the final vendor is confirmed '
+                    'by our team.',
+                    style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+                  ),
+                ],
+
                 if (_cart.distinctCategories.length > 1) ...[
                   const SizedBox(height: 8),
                   Text(
@@ -694,6 +746,10 @@ class _MultiBookingScreenState extends State<_MultiBookingScreen> {
           servicesJson: items.map((i) => i.toJson()).toList(),
           discountAmount: catDiscount,
           couponCode: _cart.couponCode,
+          // Only the booking in the pro's own category carries the request.
+          preferredVendorId: _cart.preferredVendorAppliesTo(cat['categoryId'])
+              ? _cart.preferredVendorId
+              : null,
         );
         created++;
       }

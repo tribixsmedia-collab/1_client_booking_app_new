@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
+import 'pro_vendor_detail_screen.dart';
 import '../widgets/booking_timeline.dart';
 import 'review_screen.dart';
 import '../widgets/review_list_widget.dart';
@@ -119,6 +120,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final categoryName = _booking['category_name'] ?? '';
     final subcategoryName = _booking['subcategory_name'];
     final vendorName = _booking['vendor_name'];
+    final preferredVendorName = _booking['preferred_vendor_name'];
+    final preferredVendorId = _booking['preferred_vendor'];
     final date = _booking['preferred_date'] ?? '';
     final time = _booking['preferred_time'] ?? '';
     final notes = _booking['notes'] ?? '';
@@ -230,6 +233,23 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           _InfoRow(icon: Icons.access_time, label: 'Time', value: time),
           if (vendorName != null)
             _InfoRow(icon: Icons.person, label: 'Vendor', value: vendorName),
+          if (preferredVendorName != null) ...[
+            const SizedBox(height: 8),
+            _RequestedProCard(
+              proName: '$preferredVendorName',
+              assignedVendorName: vendorName == null ? null : '$vendorName',
+              onTap: preferredVendorId == null
+                  ? null
+                  : () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ProVendorDetailScreen(
+                          vendorId: preferredVendorId as int,
+                        ),
+                      ),
+                    ),
+            ),
+            const SizedBox(height: 4),
+          ],
           if (address.isNotEmpty)
             _InfoRow(
               icon: Icons.location_on,
@@ -375,6 +395,83 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
   }
 }
+
+/// The Pro Vendor the customer asked for while booking.
+///
+/// Shown whether or not that pro ended up on the job, so the customer can see
+/// what became of their request rather than being left to guess.
+class _RequestedProCard extends StatelessWidget {
+  final String proName;
+  final String? assignedVendorName;
+  final VoidCallback? onTap;
+
+  const _RequestedProCard({
+    required this.proName,
+    required this.assignedVendorName,
+    this.onTap,
+  });
+
+  String get _outcome {
+    if (assignedVendorName == null) {
+      return 'We will pass your request on when a vendor is assigned.';
+    }
+    if (assignedVendorName == proName) {
+      return 'Assigned to your booking.';
+    }
+    return '$assignedVendorName was assigned to this booking instead.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.verified, size: 18, color: AppColors.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Requested pro: $proName',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _outcome,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: AppColors.textGrey,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (onTap != null)
+              const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.textGrey,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 
 class _InfoRow extends StatelessWidget {
   final IconData icon;

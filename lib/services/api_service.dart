@@ -171,6 +171,7 @@ class ApiService {
     int? formSubmissionId,
     double discountAmount = 0,
     String couponCode = '',
+    int? preferredVendorId,
   }) async {
     var headers = await _authHeaders();
     var res = await http.post(
@@ -195,6 +196,7 @@ class ApiService {
         if (formSubmissionId != null) 'form_submission': formSubmissionId,
         'discount_amount': discountAmount.toStringAsFixed(2),
         'coupon_code': couponCode,
+        if (preferredVendorId != null) 'preferred_vendor': preferredVendorId,
       }),
     );
     if (res.statusCode == 401) {
@@ -215,6 +217,10 @@ class ApiService {
             if (locationLng != null)
               'location_lng': locationLng.toStringAsFixed(6),
             if (servicesJson != null) 'services_json': servicesJson,
+            if (formSubmissionId != null) 'form_submission': formSubmissionId,
+            'discount_amount': discountAmount.toStringAsFixed(2),
+            'coupon_code': couponCode,
+            if (preferredVendorId != null) 'preferred_vendor': preferredVendorId,
           }),
         );
       } else {
@@ -448,6 +454,62 @@ class ApiService {
     if (res.statusCode == 200) return jsonDecode(res.body);
     return [];
   }
+  // ---------- Pro Vendors ----------
+
+  /// Admin-flagged vendors put on show in the app.
+  ///
+  /// Pass [serviceId] to narrow the list to pros who cover that service's
+  /// category — what the row at the bottom of a service page asks for.
+  static Future<List<dynamic>> getProVendors({
+    int? serviceId,
+    int? categoryId,
+  }) async {
+    final query = <String, String>{
+      if (serviceId != null) 'service': '$serviceId',
+      if (categoryId != null) 'category': '$categoryId',
+    };
+    final uri = Uri.parse(
+      '$kApiBaseUrl/vendors/pro/',
+    ).replace(queryParameters: query.isEmpty ? null : query);
+
+    try {
+      final res = await http.get(uri);
+      if (res.statusCode == 200) return jsonDecode(res.body);
+    } catch (_) {}
+    return [];
+  }
+
+  /// Full profile for one pro vendor, or null when they are no longer listed.
+  static Future<Map<String, dynamic>?> getProVendorDetail(int vendorId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$kApiBaseUrl/vendors/pro/$vendorId/'),
+      );
+      if (res.statusCode == 200) return jsonDecode(res.body);
+    } catch (_) {}
+    return null;
+  }
+
+  static Future<List<dynamic>> getProVendorSections() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$kApiBaseUrl/home/pro-vendor-sections/'),
+      );
+      if (res.statusCode == 200) return jsonDecode(res.body);
+    } catch (_) {}
+    return [];
+  }
+
+  static Future<Map<String, dynamic>> getProVendorSectionFull(
+    int sectionId,
+  ) async {
+    final res = await http.get(
+      Uri.parse('$kApiBaseUrl/home/pro-vendor-sections/$sectionId/full/'),
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    return {'items': []};
+  }
+
   // ---------- Curations ----------
 
   static Future<List<dynamic>> getCurations() async {

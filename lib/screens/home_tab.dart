@@ -18,6 +18,8 @@ import '../widgets/gps_prompt_sheet.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/refer_banner.dart';
 import '../widgets/personalized_row.dart';
+import '../widgets/pro_vendor_sections_widget.dart';
+import 'pro_vendor_detail_screen.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -35,6 +37,7 @@ class _HomeTabState extends State<HomeTab> {
   List<dynamic> _curations = [];
   List<dynamic> _headerBanners = [];
   List<dynamic> _promoCards = [];
+  List<dynamic> _proVendorSections = [];
   Map<String, dynamic>? _referralInfo;
   List<dynamic> _recentlyViewed = [];
   List<dynamic> _bookAgain = [];
@@ -53,6 +56,7 @@ class _HomeTabState extends State<HomeTab> {
     _loadPersonalizedRows();
     _loadSpotlights();
     _loadHomeSections();
+    _loadProVendorSections();
     _loadCurations();
     _cart.addListener(_onCartChanged);
     _captureAndSaveLocation();
@@ -73,6 +77,13 @@ class _HomeTabState extends State<HomeTab> {
     try {
       final data = await ApiService.getHomeSections();
       if (mounted) setState(() => _homeSections = data);
+    } catch (_) {}
+  }
+
+  Future<void> _loadProVendorSections() async {
+    try {
+      final data = await ApiService.getProVendorSections();
+      if (mounted) setState(() => _proVendorSections = data);
     } catch (_) {}
   }
 
@@ -193,6 +204,7 @@ class _HomeTabState extends State<HomeTab> {
     _loadPersonalizedRows();
     _loadSpotlights();
     _loadHomeSections();
+    _loadProVendorSections();
     _loadCurations();
   }
 
@@ -222,6 +234,20 @@ class _HomeTabState extends State<HomeTab> {
   /// Shared by the hero carousel and the spotlight cards — both carry
   /// `category` / `subcategory` ids pointing at where the tap should land.
   Future<void> _onBannerTap(Map<String, dynamic> banner) async {
+    // A pro vendor target wins over the category one — that is the promise
+    // the dashboard makes on the banner forms.
+    final proVendorId = banner['pro_vendor'];
+    if (proVendorId != null) {
+      if (!await checkProfileComplete(context)) return;
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ProVendorDetailScreen(vendorId: proVendorId as int),
+        ),
+      );
+      return;
+    }
+
     final categoryId = banner['category'];
     final subcategoryId = banner['subcategory'];
     if (categoryId == null) return;
@@ -842,6 +868,8 @@ class _HomeTabState extends State<HomeTab> {
                 promoCards: _promoCards,
                 onPromoTap: _onBannerTap,
               ),
+
+              ProVendorSectionsWidget(sections: _proVendorSections),
 
               CurationSectionWidget(sections: _curations),
 

@@ -32,6 +32,7 @@ class _BookingScreenState extends State<BookingScreen> {
 
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
+  final _cart = CartService();
 
   String _profileAddress = '';
   String _profileState = '';
@@ -52,7 +53,12 @@ class _BookingScreenState extends State<BookingScreen> {
   void initState() {
     super.initState();
     _formSubmissionId = widget.formSubmissionId;
+    _cart.addListener(_onCartChanged);
     _loadProfileAndCheckForm();
+  }
+
+  void _onCartChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadProfileAndCheckForm() async {
@@ -151,6 +157,11 @@ class _BookingScreenState extends State<BookingScreen> {
         servicesJson: widget.cartItems,
         discountAmount: cart.totalDiscount,
         couponCode: cart.couponCode,
+        // The pro the customer picked on the service page. Guarded on category
+        // so a pro chosen for another trade never rides along.
+        preferredVendorId: cart.preferredVendorAppliesTo(widget.categoryId)
+            ? cart.preferredVendorId
+            : null,
       );
 
       if (!mounted) return;
@@ -196,6 +207,7 @@ class _BookingScreenState extends State<BookingScreen> {
 
   @override
   void dispose() {
+    _cart.removeListener(_onCartChanged);
     _addressController.dispose();
     _notesController.dispose();
     super.dispose();
@@ -384,6 +396,57 @@ class _BookingScreenState extends State<BookingScreen> {
                 hintText: 'e.g. Kitchen tap has been leaking for 2 days',
               ),
             ),
+
+            if (_cart.preferredVendorAppliesTo(widget.categoryId)) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.verified,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Requested pro: ${_cart.preferredVendorName}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _cart.clearPreferredVendor,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: Icon(
+                          Icons.close,
+                          size: 18,
+                          color: AppColors.textGrey,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'We will pass your request on — the final vendor is confirmed '
+                'by our team.',
+                style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+              ),
+            ],
 
             if (_errorMessage != null) ...[
               const SizedBox(height: 12),

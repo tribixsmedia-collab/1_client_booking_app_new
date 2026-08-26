@@ -85,6 +85,44 @@ class CartService extends ChangeNotifier {
   int? _currentSubcategoryId;
   String _currentCategoryName = '';
 
+  // The pro vendor the customer asked for, carried from a service page or a
+  // vendor profile through to the booking. Only a request -- the admin still
+  // decides who actually gets assigned.
+  int? _preferredVendorId;
+  String _preferredVendorName = '';
+  List<int> _preferredVendorCategoryIds = const [];
+
+  int? get preferredVendorId => _preferredVendorId;
+  String get preferredVendorName => _preferredVendorName;
+
+  void setPreferredVendor(
+    int vendorId,
+    String name, {
+    List<int> categoryIds = const [],
+  }) {
+    _preferredVendorId = vendorId;
+    _preferredVendorName = name;
+    _preferredVendorCategoryIds = categoryIds;
+    notifyListeners();
+  }
+
+  void clearPreferredVendor() {
+    _preferredVendorId = null;
+    _preferredVendorName = '';
+    _preferredVendorCategoryIds = const [];
+    notifyListeners();
+  }
+
+  /// Whether the requested pro belongs on the booking for [categoryId].
+  ///
+  /// A cart can span categories and each one becomes its own booking, so the
+  /// pro only rides along with the categories they actually cover. An empty
+  /// list means "not known", in which case the request goes on every booking.
+  bool preferredVendorAppliesTo(int categoryId) =>
+      _preferredVendorId != null &&
+      (_preferredVendorCategoryIds.isEmpty ||
+          _preferredVendorCategoryIds.contains(categoryId));
+
   List<CartItem> get items => List.unmodifiable(_items);
   int get totalItems => _items.fold(0, (sum, item) => sum + item.quantity);
   double get totalAmount => _items.fold(0, (sum, item) => sum + item.total);
@@ -227,6 +265,9 @@ class CartService extends ChangeNotifier {
     _couponDiscount = 0;
     _autoDiscountName = '';
     _couponCode = '';
+    _preferredVendorId = null;
+    _preferredVendorName = '';
+    _preferredVendorCategoryIds = const [];
     notifyListeners();
   }
 }

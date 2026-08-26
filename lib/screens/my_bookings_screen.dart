@@ -140,6 +140,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   Widget _bookingCard(Map<String, dynamic> b) {
     final style = _statusStyle('${b['status']}');
     final vendorName = b['vendor_name'];
+    final preferredVendorName = b['preferred_vendor_name'];
     final notes = '${b['notes'] ?? ''}'.trim();
     final isCancelled = b['status'] == 'CANCELLED';
 
@@ -201,6 +202,14 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
               ),
               if (vendorName != null)
                 _detailRow(Icons.badge_outlined, '$vendorName'),
+              // Only worth a line while the request is still open — once the
+              // pro is on the job the vendor row above already says so.
+              if (preferredVendorName != null &&
+                  preferredVendorName != vendorName)
+                _detailRow(
+                  Icons.verified_outlined,
+                  'Requested pro: $preferredVendorName',
+                ),
               if (notes.isNotEmpty)
                 _detailRow(Icons.notes_outlined, notes, maxLines: 2),
 

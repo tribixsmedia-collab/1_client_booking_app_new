@@ -3,6 +3,8 @@ import '../services/cart_service.dart';
 import '../theme.dart';
 import '../services/api_service.dart';
 import '../widgets/review_list_widget.dart';
+import '../widgets/pro_vendor_card.dart';
+import 'pro_vendor_detail_screen.dart';
 import 'service_form_screen.dart';
 import '../utils/profile_gate.dart';
 import 'cart_screen.dart';
@@ -41,6 +43,8 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   bool _isLoadingReviews = true;
   Map<String, dynamic>? _discountInfo;
   double _discountedPrice = 0;
+  List<dynamic> _proVendors = [];
+  bool _isLoadingPros = true;
 
   @override
   void initState() {
@@ -53,8 +57,63 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
     _cart.addListener(_onCartChanged);
     _loadReviews();
     _loadDiscount();
+    _loadProVendors();
     // Feeds the "Recently viewed" row on the home page.
     ApiService.recordServiceView(widget.serviceId);
+  }
+
+  /// Pros who cover this service's category, so the customer can ask for a
+  /// particular one while booking it.
+  Future<void> _loadProVendors() async {
+    final vendors = await ApiService.getProVendors(serviceId: widget.serviceId);
+    if (mounted) {
+      setState(() {
+        _proVendors = vendors;
+        _isLoadingPros = false;
+      });
+    }
+  }
+
+  /// Tapping "Book" on a pro records the request; tapping it again on the
+  /// pro already chosen takes it back off.
+  Future<void> _onProBookTap(Map<String, dynamic> vendor) async {
+    final vendorId = vendor['id'] as int;
+
+    if (_cart.preferredVendorId == vendorId) {
+      _cart.clearPreferredVendor();
+      _showSnack('Removed your pro request.');
+      return;
+    }
+
+    if (!await checkProfileComplete(context)) return;
+    if (!mounted) return;
+
+    final name = (vendor['name'] as String?) ?? '';
+    _cart.setPreferredVendor(
+      vendorId,
+      name,
+      categoryIds: [widget.categoryId],
+    );
+    _showSnack('$name will be requested for this booking.');
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+    );
+  }
+
+  Future<void> _openProProfile(Map<String, dynamic> vendor) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ProVendorDetailScreen(
+          vendorId: vendor['id'] as int,
+          preview: vendor,
+          bookServiceId: widget.serviceId,
+          bookServiceName: widget.name,
+        ),
+      ),
+    );
   }
 
   int _lastItemCount = -1;
@@ -147,6 +206,55 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   void dispose() {
     _cart.removeListener(_onCartChanged);
     super.dispose();
+  }
+
+  /// The pro vendors who can take this service on, listed under the reviews.
+  Widget _buildProVendors() {
+    // Nothing to show until the call lands, and nothing to apologise for if
+    // no pro covers this category — the section simply is not there.
+    if (_isLoadingPros || _proVendors.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        const Divider(),
+        const SizedBox(height: 16),
+
+        Row(
+          children: [
+            const Icon(Icons.verified, size: 18, color: AppColors.primary),
+            const SizedBox(width: 6),
+            const Text(
+              'Book with a Pro',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Pick a pro for this service. We will pass your request on when '
+          'assigning the job.',
+          style: TextStyle(fontSize: 12, color: AppColors.textGrey, height: 1.4),
+        ),
+        const SizedBox(height: 14),
+
+        ...List.generate(_proVendors.length, (index) {
+          final vendor = Map<String, dynamic>.from(_proVendors[index]);
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: index == _proVendors.length - 1 ? 0 : 12,
+            ),
+            child: ProVendorListTile(
+              vendor: vendor,
+              isSelected: _cart.preferredVendorId == vendor['id'],
+              onTap: () => _openProProfile(vendor),
+              onBook: () => _onProBookTap(vendor),
+            ),
+          );
+        }),
+      ],
+    );
   }
 
   @override
@@ -496,6 +604,8 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       ),
                     ),
                   ],
+
+                  _buildProVendors(),
 
                   // Reviews section
                   const SizedBox(height: 24),
