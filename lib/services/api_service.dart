@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
@@ -734,6 +735,273 @@ class ApiService {
     );
     if (res.statusCode != 200) {
       throw Exception('Failed to send message');
+    }
+  }
+
+  // ---------- Tenders (post a requirement, vendors bid on it) ----------
+  //
+  // The flow: create a DRAFT, attach drawings, publish for admin review, then
+  // compare the bids that come in and award one.
+
+  /// Runs [send], and if the token has expired, refreshes it and retries once.
+  static Future<http.Response> _withAuth(
+    Future<http.Response> Function(Map<String, String> headers) send,
+  ) async {
+    var res = await send(await _authHeaders());
+    if (res.statusCode == 401) {
+      if (await _tryRefreshToken()) {
+        res = await send(await _authHeaders());
+      } else {
+        await _forceLogout();
+        throw Exception('Session expired. Please log in again.');
+      }
+    }
+    return res;
+  }
+
+  /// Reads the server's error message, falling back to something readable
+  /// when the body is HTML from a crash or a proxy rather than JSON.
+  static String _errorFrom(http.Response res, String fallback) {
+    try {
+      return _extractFirstError(jsonDecode(res.body));
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  /// Creates the tender as a DRAFT. Nothing is visible to vendors until it is
+  /// published and an admin approves it.
+  static Future<Map<String, dynamic>> createTender({
+    required String title,
+    required String projectType,
+    required int categoryId,
+    int? subcategoryId,
+    required String description,
+    String requirements = '',
+    int? areaSqft,
+    required String expectedBudget,
+    String? preferredStartDate,
+    int? durationDays,
+    String? bidDeadline,
+    String addressText = '',
+    String addressState = '',
+    String addressDistrict = '',
+    String addressPincode = '',
+    String contactPhone = '',
+    double? latitude,
+    double? longitude,
+  }) async {
+    final body = jsonEncode({
+      'title': title,
+      'project_type': projectType,
+      'category': categoryId,
+      if (subcategoryId != null) 'subcategory': subcategoryId,
+      'description': description,
+      'requirements': requirements,
+      if (areaSqft != null) 'area_sqft': areaSqft,
+      'expected_budget': expectedBudget,
+      if (preferredStartDate != null) 'preferred_start_date': preferredStartDate,
+      if (durationDays != null) 'duration_days': durationDays,
+      if (bidDeadline != null) 'bid_deadline': bidDeadline,
+      'address_text': addressText,
+      'address_state': addressState,
+      'address_district': addressDistrict,
+      'address_pincode': addressPincode,
+      'contact_phone': contactPhone,
+      if (latitude != null) 'location_lat': latitude.toStringAsFixed(6),
+      if (longitude != null) 'location_lng': longitude.toStringAsFixed(6),
+    });
+
+    final res = await _withAuth(
+      (headers) => http.post(
+        Uri.parse('$kApiBaseUrl/tenders/'),
+        headers: headers,
+        body: body,
+      ),
+    );
+    if (res.statusCode == 201) return jsonDecode(res.body);
+    throw Exception(_errorFrom(res, 'Could not post your tender.'));
+  }
+
+  static Future<List<dynamic>> getMyTenders({String? status}) async {
+    final query = status == null || status.isEmpty ? '' : '?status=$status';
+    final res = await _withAuth(
+      (headers) => http.get(
+        Uri.parse('$kApiBaseUrl/tenders/my/$query'),
+        headers: headers,
+      ),
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Could not load your tenders.');
+  }
+
+  static Future<Map<String, dynamic>> getTenderDetail(int tenderId) async {
+    final res = await _withAuth(
+      (headers) => http.get(
+        Uri.parse('$kApiBaseUrl/tenders/$tenderId/'),
+        headers: headers,
+      ),
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Could not load this tender.');
+  }
+
+  /// Edits a tender. Only allowed while it is a draft or has been sent back.
+  static Future<Map<String, dynamic>> updateTender(
+    int tenderId,
+    Map<String, dynamic> fields,
+  ) async {
+    final body = jsonEncode(fields);
+    final res = await _withAuth(
+      (headers) => http.patch(
+        Uri.parse('$kApiBaseUrl/tenders/$tenderId/'),
+        headers: headers,
+        body: body,
+      ),
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception(_errorFrom(res, 'Could not save your changes.'));
+  }
+
+  static Future<void> deleteTender(int tenderId) async {
+    final res = await _withAuth(
+      (headers) => http.delete(
+        Uri.parse('$kApiBaseUrl/tenders/$tenderId/'),
+        headers: headers,
+      ),
+    );
+    if (res.statusCode != 204) {
+      throw Exception(_errorFrom(res, 'Could not delete this tender.'));
+    }
+  }
+
+  /// Sends the tender for admin review. It reaches vendors once approved.
+  static Future<void> publishTender(int tenderId) async {
+    final res = await _withAuth(
+      (headers) => http.post(
+        Uri.parse('$kApiBaseUrl/tenders/$tenderId/publish/'),
+        headers: headers,
+      ),
+    );
+    if (res.statusCode != 200) {
+      throw Exception(_errorFrom(res, 'Could not publish this tender.'));
+    }
+  }
+
+  static Future<void> cancelTender(int tenderId, {String reason = ''}) async {
+    final body = jsonEncode({'reason': reason});
+    final res = await _withAuth(
+      (headers) => http.post(
+        Uri.parse('$kApiBaseUrl/tenders/$tenderId/cancel/'),
+        headers: headers,
+        body: body,
+      ),
+    );
+    if (res.statusCode != 200) {
+      throw Exception(_errorFrom(res, 'Could not cancel this tender.'));
+    }
+  }
+
+  /// Attaches a drawing or site photo. Multipart, so it does not go through
+  /// [_withAuth] — the body would have to be rebuilt on the retry anyway.
+  static Future<Map<String, dynamic>> uploadTenderAttachment({
+    required int tenderId,
+    required File file,
+    String caption = '',
+  }) async {
+    final uri = Uri.parse('$kApiBaseUrl/tenders/$tenderId/attachments/');
+
+    Future<http.Response> send() async {
+      final token = await getAccessToken();
+      final request = http.MultipartRequest('POST', uri);
+      if (token != null) request.headers['Authorization'] = 'Bearer $token';
+      if (caption.isNotEmpty) request.fields['caption'] = caption;
+      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+      return http.Response.fromStream(await request.send());
+    }
+
+    var res = await send();
+    if (res.statusCode == 401) {
+      if (await _tryRefreshToken()) {
+        res = await send();
+      } else {
+        await _forceLogout();
+        throw Exception('Session expired. Please log in again.');
+      }
+    }
+    if (res.statusCode == 201) return jsonDecode(res.body);
+    throw Exception(_errorFrom(res, 'Could not upload that file.'));
+  }
+
+  static Future<void> deleteTenderAttachment(int attachmentId) async {
+    final res = await _withAuth(
+      (headers) => http.delete(
+        Uri.parse('$kApiBaseUrl/tenders/attachments/$attachmentId/'),
+        headers: headers,
+      ),
+    );
+    if (res.statusCode != 204) {
+      throw Exception(_errorFrom(res, 'Could not remove that attachment.'));
+    }
+  }
+
+  /// The quotes to compare. [sort] is 'amount', 'timeline' or 'rating'.
+  static Future<List<dynamic>> getTenderBids(
+    int tenderId, {
+    String sort = 'amount',
+  }) async {
+    final res = await _withAuth(
+      (headers) => http.get(
+        Uri.parse('$kApiBaseUrl/tenders/$tenderId/bids/?sort=$sort'),
+        headers: headers,
+      ),
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Could not load the bids.');
+  }
+
+  /// Awards the tender to this bid. Every other bid is turned down.
+  static Future<Map<String, dynamic>> acceptTenderBid(int bidId) async {
+    final res = await _withAuth(
+      (headers) => http.post(
+        Uri.parse('$kApiBaseUrl/tenders/bids/$bidId/accept/'),
+        headers: headers,
+      ),
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception(_errorFrom(res, 'Could not accept this bid.'));
+  }
+
+  /// Records a milestone as settled. No money moves here — the payment
+  /// happens between the customer and the vendor directly.
+  static Future<Map<String, dynamic>> payTenderMilestone(
+    int milestoneId,
+  ) async {
+    final res = await _withAuth(
+      (headers) => http.post(
+        Uri.parse('$kApiBaseUrl/tenders/milestones/$milestoneId/pay/'),
+        headers: headers,
+      ),
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception(_errorFrom(res, 'Could not record that payment.'));
+  }
+
+  static Future<void> submitTenderReview({
+    required int tenderId,
+    required int rating,
+    String comment = '',
+  }) async {
+    final body = jsonEncode({'rating': rating, 'comment': comment});
+    final res = await _withAuth(
+      (headers) => http.post(
+        Uri.parse('$kApiBaseUrl/tenders/$tenderId/review/'),
+        headers: headers,
+        body: body,
+      ),
+    );
+    if (res.statusCode != 201) {
+      throw Exception(_errorFrom(res, 'Could not submit your review.'));
     }
   }
 }

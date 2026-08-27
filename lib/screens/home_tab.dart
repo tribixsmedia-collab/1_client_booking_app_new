@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import '../services/cart_service.dart';
 import '../theme.dart';
+import '../widgets/tender_promo_card.dart';
 import '../widgets/header_carousel.dart';
 import '../widgets/spotlight_section.dart';
 import '../widgets/category_grid.dart';
@@ -775,6 +776,9 @@ class _HomeTabState extends State<HomeTab> {
             padding: const EdgeInsets.only(bottom: 24),
             children: [
               _buildHero(context),
+              const SizedBox(height: 24),
+
+              const TenderPromoCard(),
               const SizedBox(height: 24),
 
               // --- Categories ---
