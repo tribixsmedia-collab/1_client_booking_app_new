@@ -65,50 +65,61 @@ class _HeaderCarouselState extends State<HeaderCarousel> {
 
     return Column(
       children: [
-        AspectRatio(
-          aspectRatio: 2.3,
-          child: Stack(
-            children: [
-              PageView.builder(
-                controller: _controller,
-                itemCount: widget.banners.length,
-                onPageChanged: (i) => setState(() => _currentPage = i),
-                itemBuilder: (context, index) {
-                  final banner = Map<String, dynamic>.from(
-                    widget.banners[index],
-                  );
-                  return _HeaderSlide(
-                    banner: banner,
-                    onTap: () => widget.onTap(banner),
-                  );
-                },
-              ),
-
-              // Page indicator — bottom right, like the reference design
-              if (widget.banners.length > 1)
-                Positioned(
-                  right: 16,
-                  bottom: 12,
-                  child: Row(
-                    children: List.generate(widget.banners.length, (i) {
-                      final isActive = i == _currentPage;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        margin: const EdgeInsets.only(left: 5),
-                        height: 4,
-                        width: isActive ? 18 : 10,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(
-                            alpha: isActive ? 0.95 : 0.45,
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // 2.3 is the right shape on a phone. Left alone, a desktop window
+            // turns that into an 800px-tall banner that buries the catalogue,
+            // so the height stops growing and the banner just gets wider.
+            // An AspectRatio cannot do this job here: the Column hands it a
+            // loose width, so capping its height makes it narrow instead.
+            final height = constraints.maxWidth / 2.3;
+            return SizedBox(
+              width: double.infinity,
+              height: height > 280 ? 280 : height,
+              child: Stack(
+                children: [
+                  PageView.builder(
+                    controller: _controller,
+                    itemCount: widget.banners.length,
+                    onPageChanged: (i) => setState(() => _currentPage = i),
+                    itemBuilder: (context, index) {
+                      final banner = Map<String, dynamic>.from(
+                        widget.banners[index],
                       );
-                    }),
+                      return _HeaderSlide(
+                        banner: banner,
+                        onTap: () => widget.onTap(banner),
+                      );
+                    },
                   ),
-                ),
-            ],
-          ),
+
+                  // Page indicator — bottom right, like the reference design
+                  if (widget.banners.length > 1)
+                    Positioned(
+                      right: 16,
+                      bottom: 12,
+                      child: Row(
+                        children: List.generate(widget.banners.length, (i) {
+                          final isActive = i == _currentPage;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            margin: const EdgeInsets.only(left: 5),
+                            height: 4,
+                            width: isActive ? 18 : 10,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(
+                                alpha: isActive ? 0.95 : 0.45,
+                              ),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
         ),
       ],
     );

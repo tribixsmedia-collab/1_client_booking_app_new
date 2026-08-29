@@ -33,6 +33,14 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+
+            // Razorpay's classes must survive shrinking or checkout callbacks
+            // stop firing in release builds. Listed here so the rules are
+            // already in place whenever minification is turned on.
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

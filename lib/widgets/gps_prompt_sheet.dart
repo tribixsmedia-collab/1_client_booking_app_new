@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -27,27 +28,37 @@ class GpsPromptSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Looks like your GPS is turned off',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          Text(
+            kIsWeb
+                ? 'Location is blocked in your browser'
+                : 'Looks like your GPS is turned off',
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Allow us to get your exact location for smooth booking experience',
-            style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.4),
+          Text(
+            kIsWeb
+                ? 'Allow location for this site from the padlock icon in the '
+                      'address bar, so we can find services near you'
+                : 'Allow us to get your exact location for smooth booking '
+                      'experience',
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () async {
-                await Geolocator.openLocationSettings();
+                if (!kIsWeb) await Geolocator.openLocationSettings();
                 if (context.mounted) Navigator.of(context).pop();
               },
               icon: const Icon(Icons.location_on, color: Colors.white),
-              label: const Text(
-                'Turn on your GPS',
-                style: TextStyle(
+              label: Text(
+                kIsWeb ? 'Got it' : 'Turn on your GPS',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,

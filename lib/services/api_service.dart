@@ -80,7 +80,14 @@ class ApiService {
   static Future<bool> tryRefreshToken() => _tryRefreshToken();
 
   static Future<void> _forceLogout() async {
+    final hadSession = await getAccessToken() != null;
     await logout();
+
+    // A guest browsing the web app has no session to expire, so a 401 here
+    // just means "not signed in" — throwing up the login screen mid-browse
+    // would be wrong. They get asked at the point of booking instead.
+    if (kGuestBrowsing && !hadSession) return;
+
     final ctx = navigatorKey.currentContext;
     if (ctx != null) {
       Navigator.of(ctx).pushAndRemoveUntil(
@@ -735,5 +742,71 @@ class ApiService {
     if (res.statusCode != 200) {
       throw Exception('Failed to send message');
     }
+  }
+
+  // ---------- Payments (Razorpay) ----------
+
+  /// Opens a Razorpay order for a booking and returns what Checkout needs:
+  /// `order_id`, `amount` (paise), `key_id`, `currency`.
+  ///
+  /// The amount is decided by the server from the booking -- deliberately not
+  /// a parameter here, so the app has no way to influence what is charged.
+  static Future<Map<String, dynamic>> createPaymentOrder(int bookingId) async {
+    var headers = await _authHeaders();
+    final url = Uri.parse('$kApiBaseUrl/payments/order/');
+    final body = jsonEncode({'booking_id': bookingId});
+
+    var res = await http.post(url, headers: headers, body: body);
+    if (res.statusCode == 401 && await _tryRefreshToken()) {
+      headers = await _authHeaders();
+      res = await http.post(url, headers: headers, body: body);
+    }
+    if (res.statusCode == 201) return jsonDecode(res.body);
+    throw Exception(_extractFirstError(jsonDecode(res.body)));
+  }
+
+  /// Hands Checkout's three return values to the server, which verifies the
+  /// signature and confirms with Razorpay before marking the booking paid.
+  static Future<Map<String, dynamic>> verifyPayment({
+    required String orderId,
+    required String paymentId,
+    required String signature,
+  }) async {
+    var headers = await _authHeaders();
+    final url = Uri.parse('$kApiBaseUrl/payments/verify/');
+    final body = jsonEncode({
+      'razorpay_order_id': orderId,
+      'razorpay_payment_id': paymentId,
+      'razorpay_signature': signature,
+    });
+
+    var res = await http.post(url, headers: headers, body: body);
+    if (res.statusCode == 401 && await _tryRefreshToken()) {
+      headers = await _authHeaders();
+      res = await http.post(url, headers: headers, body: body);
+    }
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception(_extractFirstError(jsonDecode(res.body)));
+  }
+
+  /// The server's own view of what has been paid on a booking.
+  ///
+  /// This is the reconciliation path: if verifying fails because the network
+  /// dropped, Razorpay's webhook still reaches the server, so asking here a
+  /// moment later gives the true answer without charging anyone twice.
+  static Future<Map<String, dynamic>> getBookingPaymentStatus(
+    int bookingId,
+  ) async {
+    final res = await _authorizedGet(
+      '$kApiBaseUrl/payments/booking/$bookingId/',
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Could not check the payment status.');
+  }
+
+  static Future<List<dynamic>> getMyPayments() async {
+    final res = await _authorizedGet('$kApiBaseUrl/payments/my/');
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Could not load your payments.');
   }
 }

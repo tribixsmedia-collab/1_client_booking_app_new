@@ -38,126 +38,135 @@ class PromoCardTile extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       child: GestureDetector(
         onTap: onTap,
-        child: AspectRatio(
-          aspectRatio: 1,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                if (imageUrl != null && imageUrl.isNotEmpty)
-                  Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    // The card spans the screen minus its 20pt side padding.
-                    cacheWidth: decodeWidthFor(
-                      context,
-                      MediaQuery.sizeOf(context).width - 40,
-                    ),
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
-
-                // Darkens just the top and bottom so the text and button stay
-                // readable whatever image the admin uploads.
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      stops: const [0.0, 0.45, 1.0],
-                      colors: [
-                        Colors.black.withValues(alpha: 0.45),
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.45),
-                      ],
-                    ),
-                  ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Square on a phone. Left alone that means a 1200px-tall card in
+            // a desktop browser, so past a point the card stops growing
+            // downwards and becomes a wide banner instead.
+            final side = constraints.maxWidth;
+            return SizedBox(
+              width: double.infinity,
+              height: side > 380 ? 380 : side,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-
-                Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (badgeText.isNotEmpty) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: badgeColor,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            badgeText,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (imageUrl != null && imageUrl.isNotEmpty)
+                      Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        // The card spans the screen minus its 20pt side padding.
+                        cacheWidth: decodeWidthFor(
+                          context,
+                          MediaQuery.sizeOf(context).width - 40,
                         ),
-                        const SizedBox(height: 12),
-                      ],
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
 
-                      if (title.isNotEmpty)
-                        Text(
-                          title,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            height: 1.2,
-                          ),
-                        ),
-
-                      if (subtitle.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-
-                      const Spacer(),
-
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 22,
-                          vertical: 13,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          buttonText,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    // Darkens just the top and bottom so the text and button stay
+                    // readable whatever image the admin uploads.
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          stops: const [0.0, 0.45, 1.0],
+                          colors: [
+                            Colors.black.withValues(alpha: 0.45),
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.45),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (badgeText.isNotEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: badgeColor,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                badgeText,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+
+                          if (title.isNotEmpty)
+                            Text(
+                              title,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                height: 1.2,
+                              ),
+                            ),
+
+                          if (subtitle.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+
+                          const Spacer(),
+
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 22,
+                              vertical: 13,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              buttonText,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config.dart';
 import '../services/api_service.dart';
 import '../services/branding_service.dart';
 import '../widgets/app_logo.dart';
@@ -48,12 +49,18 @@ class _SplashScreenState extends State<SplashScreen>
 
     final loggedIn = await ApiService.isLoggedIn();
 
+    // Guests go straight to the catalogue; the phone number is collected at
+    // the point of booking instead. See [kGuestBrowsing].
+    final destination = loggedIn || kGuestBrowsing;
+
     if (!mounted) return;
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, __, ___) =>
-            loggedIn ? const MainNavigationScreen() : const PhoneEntryScreen(),
+            destination
+            ? const MainNavigationScreen()
+            : const PhoneEntryScreen(),
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(opacity: animation, child: child);
         },

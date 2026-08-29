@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../screens/notification_screen.dart';
 import '../services/notification_service.dart';
 import '../theme.dart';
+import '../utils/profile_gate.dart';
 
 /// Bell button styled to match the cart avatar in home_tab.dart.
 ///
@@ -38,6 +39,10 @@ class _NotificationBellState extends State<NotificationBell> {
       builder: (context, count, _) {
         return GestureDetector(
           onTap: () async {
+            // Guests have no notification list to open, so ask them to sign
+            // in here rather than pushing a screen that can only error.
+            if (!await requireSignIn(context)) return;
+            if (!context.mounted) return;
             await Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const NotificationScreen()),
             );

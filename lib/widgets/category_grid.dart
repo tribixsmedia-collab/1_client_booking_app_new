@@ -125,7 +125,11 @@ class SubcategoryItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: (MediaQuery.of(context).size.width - 80) / 3,
+        // A third of the row on a phone, but capped so a wide browser window
+        // does not scatter 70px icons across 600px of empty space.
+        width: (MediaQuery.of(context).size.width - 80) / 3 > 140
+            ? 140
+            : (MediaQuery.of(context).size.width - 80) / 3,
         child: Column(
           children: [
             Container(

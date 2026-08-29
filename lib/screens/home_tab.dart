@@ -19,10 +19,18 @@ import '../widgets/notification_bell.dart';
 import '../widgets/refer_banner.dart';
 import '../widgets/personalized_row.dart';
 import '../widgets/pro_vendor_sections_widget.dart';
+import '../utils/breakpoints.dart';
+import '../widgets/web_footer.dart';
+import '../services/branding_service.dart';
+import '../widgets/app_logo.dart';
 import 'pro_vendor_detail_screen.dart';
 
 class HomeTab extends StatefulWidget {
-  const HomeTab({super.key});
+  const HomeTab({super.key, this.onOpenBookings});
+
+  /// Bookings is a sibling tab rather than a route, so the footer asks the
+  /// navigation shell to switch to it.
+  final VoidCallback? onOpenBookings;
 
   @override
   State<HomeTab> createState() => _HomeTabState();
@@ -49,21 +57,36 @@ class _HomeTabState extends State<HomeTab> {
   void initState() {
     super.initState();
     _categoriesFuture = _loadCategories();
-    _loadProfileName();
+    _categoriesFuture.catchError((Object _) => <dynamic>[]).ignore();
     _loadHeaderBanners();
     _loadPromoCards();
-    _loadReferralInfo();
-    _loadPersonalizedRows();
     _loadSpotlights();
     _loadHomeSections();
     _loadProVendorSections();
     _loadCurations();
+    _loadSignedInExtras();
     _cart.addListener(_onCartChanged);
-    _captureAndSaveLocation();
   }
 
   void _onCartChanged() {
     if (mounted) setState(() {});
+  }
+
+  /// The parts of this page that belong to a specific customer: their name and
+  /// saved address, their referral code, and the rows built from their own
+  /// history.
+  ///
+  /// A guest has none of those and the endpoints behind them are all
+  /// customer-only, so asking would just be four 401s. Everything they feed
+  /// already renders as nothing when it is empty — the greeting falls back to
+  /// "Welcome", and [PersonalizedRow] draws no heading for an empty list — so
+  /// skipping them leaves a clean catalogue rather than a broken page.
+  Future<void> _loadSignedInExtras() async {
+    if (!await ApiService.isLoggedIn()) return;
+    _loadProfileName();
+    _loadReferralInfo();
+    _loadPersonalizedRows();
+    _captureAndSaveLocation();
   }
 
   Future<void> _loadCurations() async {
@@ -122,24 +145,30 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Future<void> _loadReferralInfo() async {
-    final info = await ApiService.getReferralInfo();
-    if (mounted) setState(() => _referralInfo = info);
+    try {
+      final info = await ApiService.getReferralInfo();
+      if (mounted) setState(() => _referralInfo = info);
+    } catch (_) {}
   }
 
   Future<void> _loadPersonalizedRows() async {
-    final recent = await ApiService.getRecentlyViewed();
-    final again = await ApiService.getBookAgain();
-    if (mounted) {
-      setState(() {
-        _recentlyViewed = recent;
-        _bookAgain = again;
-      });
-    }
+    try {
+      final recent = await ApiService.getRecentlyViewed();
+      final again = await ApiService.getBookAgain();
+      if (mounted) {
+        setState(() {
+          _recentlyViewed = recent;
+          _bookAgain = again;
+        });
+      }
+    } catch (_) {}
   }
 
   /// Opens the map picker and saves whatever the customer confirms back
   /// onto their profile, so the hero header stays in sync.
   Future<void> _changeLocation() async {
+    if (!await requireSignIn(context)) return;
+    if (!mounted) return;
     final newAddress = await pickAndSaveLocation(context);
     if (newAddress != null && mounted) {
       setState(() => _customerAddress = newAddress);
@@ -200,12 +229,11 @@ class _HomeTabState extends State<HomeTab> {
     });
     _loadHeaderBanners();
     _loadPromoCards();
-    _loadReferralInfo();
-    _loadPersonalizedRows();
     _loadSpotlights();
     _loadHomeSections();
     _loadProVendorSections();
     _loadCurations();
+    _loadSignedInExtras();
   }
 
   Future<void> _onCategoryTap(Map<String, dynamic> cat) async {
@@ -580,6 +608,186 @@ class _HomeTabState extends State<HomeTab> {
 
   /// Coloured hero at the top of the home screen: greeting + saved address,
   /// the search entry point, and the admin-managed promo carousel.
+  // ----------------------------------------------------------- desktop hero
+  /// Two columns: what you can book on the left, the running promotions as a
+  /// mosaic on the right. Only used above [kDesktopBreakpoint] — the phone
+  /// keeps [_buildHero].
+  Widget _buildDesktopHero(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 44),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: kDesktopContentWidth),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 5, child: _desktopHeroLeft(context)),
+                const SizedBox(width: 48),
+                Expanded(flex: 6, child: _desktopHeroMosaic(context)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _desktopHeroLeft(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        BrandingBuilder(
+          builder: (context) => Text(
+            BrandingService.tagline?.isNotEmpty == true
+                ? BrandingService.tagline!
+                : 'Services at your doorstep',
+            style: const TextStyle(
+              fontSize: 36,
+              height: 1.22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textDark,
+            ),
+          ),
+        ),
+        const SizedBox(height: 26),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'What do you need done?',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (_allCategories.length > 6)
+                    TextButton(
+                      onPressed: _showAllServices,
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 0),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text(
+                        'See all',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              if (_allCategories.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 18,
+                    crossAxisSpacing: 14,
+                    // A fixed row height rather than an aspect ratio: the tile
+                    // is a 70px icon plus up to two lines of label whatever
+                    // the window is doing, so a ratio either leaves dead space
+                    // at 1440px or clips the label at the 900px breakpoint.
+                    mainAxisExtent: 118,
+                  ),
+                  itemCount: _allCategories.length < 6
+                      ? _allCategories.length
+                      : 6,
+                  itemBuilder: (context, index) {
+                    final cat = _allCategories[index];
+                    return CategoryCard(
+                      name: cat['name'],
+                      iconUrl: cat['icon'],
+                      onTap: () =>
+                          _onCategoryTap(Map<String, dynamic>.from(cat)),
+                    );
+                  },
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _desktopHeroMosaic(BuildContext context) {
+    final withImages = _headerBanners
+        .whereType<Map>()
+        .where((b) => (b['image'] as String?)?.isNotEmpty == true)
+        .toList();
+
+    // Three promotions or fewer is not a mosaic - fall back to the same
+    // carousel the phone uses rather than leaving holes in the grid.
+    if (withImages.length < 4) {
+      return HeaderCarousel(banners: _headerBanners, onTap: _onBannerTap);
+    }
+
+    Widget tile(Map banner, double height) {
+      return GestureDetector(
+        onTap: () => _onBannerTap(Map<String, dynamic>.from(banner)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: SizedBox(
+            height: height,
+            width: double.infinity,
+            child: Image.network(
+              banner['image'] as String,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(color: AppColors.background),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            children: [
+              tile(withImages[0], 178),
+              const SizedBox(height: 14),
+              tile(withImages[1], 236),
+            ],
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            children: [
+              tile(withImages[2], 236),
+              const SizedBox(height: 14),
+              tile(withImages[3], 178),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildHero(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -665,9 +873,9 @@ class _HomeTabState extends State<HomeTab> {
                 ),
                 const SizedBox(width: 10),
                 GestureDetector(
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const CartScreen()),
-                  ),
+                  onTap: () => Navigator.of(
+                    context,
+                  ).push(MaterialPageRoute(builder: (_) => const CartScreen())),
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -717,9 +925,9 @@ class _HomeTabState extends State<HomeTab> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: GestureDetector(
               onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SearchScreen()),
-                );
+                Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const SearchScreen()));
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -762,6 +970,7 @@ class _HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
+    final desktop = isDesktopLayout(context);
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,
@@ -772,111 +981,145 @@ class _HomeTabState extends State<HomeTab> {
         body: RefreshIndicator(
           onRefresh: _refresh,
           child: ListView(
-            padding: const EdgeInsets.only(bottom: 24),
+            padding: EdgeInsets.only(bottom: desktop ? 0 : 24),
             children: [
-              _buildHero(context),
-              const SizedBox(height: 24),
+              desktop ? _buildDesktopHero(context) : _buildHero(context),
+              SizedBox(height: desktop ? 8 : 24),
 
               // --- Categories ---
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'All Services',
-                  style: Theme.of(context).textTheme.titleMedium,
+              // On desktop these already sit inside the hero card, so the
+              // standalone section would just repeat them.
+              if (!desktop) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'All Services',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: FutureBuilder<List<dynamic>>(
-                  future: _categoriesFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Padding(
-                        padding: EdgeInsets.only(top: 60),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    if (snapshot.hasError) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 60),
-                        child: Center(child: Text('Error: ${snapshot.error}')),
-                      );
-                    }
-                    if (_allCategories.isEmpty) {
-                      return const Padding(
-                        padding: EdgeInsets.only(top: 60),
-                        child: Center(
-                          child: Text('No matching services found.'),
-                        ),
-                      );
-                    }
-                    return GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
-                            mainAxisSpacing: 14,
-                            crossAxisSpacing: 10,
-                            childAspectRatio: 0.60,
-                          ),
-                      itemCount: _allCategories.length <= 7
-                          ? _allCategories.length
-                          : 8,
-                      itemBuilder: (context, index) {
-                        if (_allCategories.length > 7 && index == 7) {
-                          return MoreCard(
-                            remainingCount: _allCategories.length - 7,
-                            onTap: _showAllServices,
-                          );
-                        }
-                        final cat = _allCategories[index];
-                        return CategoryCard(
-                          name: cat['name'],
-                          // price: cat['base_price'],
-                          iconUrl: cat['icon'],
-                          onTap: () =>
-                              _onCategoryTap(Map<String, dynamic>.from(cat)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: FutureBuilder<List<dynamic>>(
+                    future: _categoriesFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.only(top: 60),
+                          child: Center(child: CircularProgressIndicator()),
                         );
-                      },
-                    );
-                  },
+                      }
+                      if (snapshot.hasError) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 60),
+                          child: Center(
+                            child: Text('Error: ${snapshot.error}'),
+                          ),
+                        );
+                      }
+                      if (_allCategories.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.only(top: 60),
+                          child: Center(
+                            child: Text('No matching services found.'),
+                          ),
+                        );
+                      }
+                      // Phones keep the four columns they always had. Only a
+                      // window wider than a phone gets more of them, so the
+                      // tiles stay tile-sized instead of stretching to a
+                      // quarter of a 1920px monitor each.
+                      final gridWidth = MediaQuery.sizeOf(context).width;
+                      final columns = gridWidth < 600
+                          ? 4
+                          : (gridWidth / 130).floor().clamp(4, 12);
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          mainAxisSpacing: 14,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 0.60,
+                        ),
+                        itemCount: _allCategories.length <= 7
+                            ? _allCategories.length
+                            : 8,
+                        itemBuilder: (context, index) {
+                          if (_allCategories.length > 7 && index == 7) {
+                            return MoreCard(
+                              remainingCount: _allCategories.length - 7,
+                              onTap: _showAllServices,
+                            );
+                          }
+                          final cat = _allCategories[index];
+                          return CategoryCard(
+                            name: cat['name'],
+                            // price: cat['base_price'],
+                            iconUrl: cat['icon'],
+                            onTap: () =>
+                                _onCategoryTap(Map<String, dynamic>.from(cat)),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+              ],
+
+              // Edge-to-edge on a phone; centred in the content column on a
+              // monitor so the rows stay under their own headings.
+              DesktopCentered(
+                child: SpotlightSection(
+                  spotlights: _spotlights,
+                  onTap: _onBannerTap,
                 ),
               ),
 
-              const SizedBox(height: 24),
-
-              // These go edge-to-edge — NO horizontal padding wrapper
-              SpotlightSection(spotlights: _spotlights, onTap: _onBannerTap),
-
-              PersonalizedRow(
-                title: 'Book again',
-                subtitle: 'Services you have booked before',
-                services: _bookAgain,
-                showTimesBooked: true,
+              DesktopCentered(
+                child: PersonalizedRow(
+                  title: 'Book again',
+                  subtitle: 'Services you have booked before',
+                  services: _bookAgain,
+                  showTimesBooked: true,
+                ),
               ),
 
-              PersonalizedRow(
-                title: 'Recently viewed',
-                services: _recentlyViewed,
+              DesktopCentered(
+                child: PersonalizedRow(
+                  title: 'Recently viewed',
+                  services: _recentlyViewed,
+                ),
               ),
 
-              HomeSectionsWidget(
-                sections: _homeSections,
-                promoCards: _promoCards,
-                onPromoTap: _onBannerTap,
+              DesktopCentered(
+                child: HomeSectionsWidget(
+                  sections: _homeSections,
+                  promoCards: _promoCards,
+                  onPromoTap: _onBannerTap,
+                ),
               ),
 
-              ProVendorSectionsWidget(sections: _proVendorSections),
+              DesktopCentered(
+                child: ProVendorSectionsWidget(sections: _proVendorSections),
+              ),
 
-              CurationSectionWidget(sections: _curations),
+              DesktopCentered(
+                child: CurationSectionWidget(sections: _curations),
+              ),
 
               // --- Refer & earn, closing out the page ---
               if (_referralInfo != null) ...[
                 const SizedBox(height: 8),
-                ReferBanner(info: _referralInfo!),
+                DesktopCentered(child: ReferBanner(info: _referralInfo!)),
+              ],
+
+              if (desktop) ...[
+                const SizedBox(height: 48),
+                WebFooter(onOpenBookings: widget.onOpenBookings ?? () {}),
               ],
             ],
           ),

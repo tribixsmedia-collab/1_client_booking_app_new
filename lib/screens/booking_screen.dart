@@ -169,6 +169,27 @@ class _BookingScreenState extends State<BookingScreen> {
       final bookingId = booking['id'];
       CartService().clear();
 
+      // Paying up front is what stops a job starting on an unpaid booking,
+      // so it is offered here rather than left for the customer to find.
+      final amount = double.tryParse('${booking['amount'] ?? 0}') ?? 0;
+      final needsPayment = amount > 0 && booking['payment_status'] != 'PAID';
+      final payNote = needsPayment
+          ? '\n\nPay now to confirm your slot. We hold the money and release '
+                'it to the professional only after the job is done.'
+          : '';
+
+      void goToBooking({bool pay = false}) {
+        Navigator.of(context).pop(); // close dialog
+        // Pop back to the root (home), then open booking detail
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) =>
+                BookingDetailScreen(booking: booking, startPayment: pay),
+          ),
+        );
+      }
+
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -177,22 +198,18 @@ class _BookingScreenState extends State<BookingScreen> {
           content: Text(
             'Your ${widget.categoryName} booking is confirmed for '
             '${_formatDate(_selectedDate!)} at ${_selectedTime!.format(context)}.\n\n'
-            'A vendor will be assigned to you shortly.',
+            'A vendor will be assigned to you shortly.$payNote',
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // close dialog
-                // Pop back to the root (home), then open booking detail
-                Navigator.of(context).popUntil((route) => route.isFirst);
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => BookingDetailScreen(booking: booking),
-                  ),
-                );
-              },
-              child: const Text('OK'),
+              onPressed: () => goToBooking(),
+              child: Text(needsPayment ? 'Pay later' : 'OK'),
             ),
+            if (needsPayment)
+              ElevatedButton(
+                onPressed: () => goToBooking(pay: true),
+                child: Text('Pay ₹${booking['amount']}'),
+              ),
           ],
         ),
       );

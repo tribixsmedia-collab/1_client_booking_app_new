@@ -5,11 +5,20 @@ import 'pro_vendor_detail_screen.dart';
 import '../widgets/booking_timeline.dart';
 import 'review_screen.dart';
 import '../widgets/review_list_widget.dart';
+import '../widgets/pay_now_card.dart';
 
 class BookingDetailScreen extends StatefulWidget {
   final Map<String, dynamic> booking;
 
-  const BookingDetailScreen({super.key, required this.booking});
+  /// Opens the payment sheet on arrival. Set when the customer chose "Pay now"
+  /// straight after booking, so they are not made to hunt for the button.
+  final bool startPayment;
+
+  const BookingDetailScreen({
+    super.key,
+    required this.booking,
+    this.startPayment = false,
+  });
 
   @override
   State<BookingDetailScreen> createState() => _BookingDetailScreenState();
@@ -26,6 +35,24 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     super.initState();
     _booking = widget.booking;
     _loadReview();
+  }
+
+  /// Re-reads the booking after a payment so the amount row and the timeline
+  /// stop showing it as unpaid.
+  Future<void> _refreshBooking() async {
+    try {
+      final bookings = await ApiService.getMyBookings();
+      final fresh = bookings.firstWhere(
+        (b) => b['id'] == _booking['id'],
+        orElse: () => null,
+      );
+      if (fresh != null && mounted) {
+        setState(() => _booking = Map<String, dynamic>.from(fresh));
+      }
+    } catch (_) {
+      // The payment already succeeded server-side; a failed refresh only
+      // means this screen is briefly stale.
+    }
   }
 
   Future<void> _loadReview() async {
@@ -275,6 +302,22 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               label: 'Amount',
               value: '₹$amount ($paymentStatus)',
             ),
+
+            // Anything still owed on a live booking can be paid here. Hidden
+            // once paid, and on a cancelled booking there is nothing to pay.
+            if (paymentStatus != 'PAID' && status != 'CANCELLED') ...[
+              const SizedBox(height: 12),
+              PayNowCard(
+                bookingId: _booking['id'],
+                amount: '$amount',
+                description: categoryName.isEmpty
+                    ? 'Booking #${_booking['id']}'
+                    : '$categoryName booking',
+                contactPhone: '$phone',
+                onPaid: _refreshBooking,
+                autoStart: widget.startPayment,
+              ),
+            ],
           ],
 
           const SizedBox(height: 24),

@@ -48,20 +48,33 @@ class AppBottomNav extends StatelessWidget {
         top: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              for (var i = 0; i < _items.length; i++)
-                _NavPill(
-                  item: _items[i],
-                  isActive: i == currentIndex,
-                  onTap: () {
-                    if (i == currentIndex) return;
-                    HapticFeedback.selectionClick();
-                    onTap(i);
-                  },
-                ),
-            ],
+          child: Align(
+            alignment: Alignment.center,
+            // heightFactor pins the bar to the height of the pills. A bare
+            // Center expands into the loose constraints bottomNavigationBar
+            // hands down, and eats the entire body.
+            heightFactor: 1,
+            child: ConstrainedBox(
+              // Phones are narrower than this so they are unaffected; it only
+              // stops the three pills drifting to the far corners of a
+              // desktop window.
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  for (var i = 0; i < _items.length; i++)
+                    _NavPill(
+                      item: _items[i],
+                      isActive: i == currentIndex,
+                      onTap: () {
+                        if (i == currentIndex) return;
+                        HapticFeedback.selectionClick();
+                        onTap(i);
+                      },
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

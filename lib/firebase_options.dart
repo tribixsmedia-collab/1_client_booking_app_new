@@ -15,11 +15,24 @@ import 'package:flutter/foundation.dart'
 /// );
 /// ```
 class DefaultFirebaseOptions {
+  /// Flip to `true` once you have registered a **Web** app in the Firebase
+  /// console (Project settings -> Your apps -> Web) and pasted its values into
+  /// [web] below, plus the Web Push certificate key pair into
+  /// `PushService.webVapidKey`.
+  ///
+  /// While this is `false` the web build simply runs without Firebase: the
+  /// notification bell, the notification list and every other API-backed
+  /// feature still work, because those come from our own Django backend. Only
+  /// browser push notifications are off.
+  static const bool webConfigured = false;
+
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
+      if (webConfigured) return web;
       throw UnsupportedError(
         'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
+        'set DefaultFirebaseOptions.webConfigured to true after filling in '
+        'the web options below.',
       );
     }
     switch (defaultTargetPlatform) {
@@ -64,5 +77,16 @@ class DefaultFirebaseOptions {
     projectId: 'prohome-8f3c8',
     storageBucket: 'prohome-8f3c8.firebasestorage.app',
     iosBundleId: 'com.example.customerApp',
+  );
+
+  /// Placeholder. Replace every value with the ones from your Firebase console
+  /// Web app, then set [webConfigured] to `true`.
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'PASTE_WEB_API_KEY',
+    appId: 'PASTE_WEB_APP_ID',
+    messagingSenderId: '879153194201',
+    projectId: 'prohome-8f3c8',
+    authDomain: 'prohome-8f3c8.firebaseapp.com',
+    storageBucket: 'prohome-8f3c8.firebasestorage.app',
   );
 }

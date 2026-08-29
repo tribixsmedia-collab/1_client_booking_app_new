@@ -80,6 +80,12 @@ class NotificationService {
 
   /// GET /api/notifications/unread-count/ — cheap, safe to call often.
   Future<int> refreshUnreadCount() async {
+    // Nobody signed in means no notifications to count, and the endpoint is
+    // customer-only — asking would just log a 401 on every guest page load.
+    if (await ApiService.getAccessToken() == null) {
+      unreadCount.value = 0;
+      return 0;
+    }
     try {
       final res = await _send(
         (headers) => http.get(

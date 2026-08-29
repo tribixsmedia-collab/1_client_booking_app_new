@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../config.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
+import '../widgets/sign_in_prompt.dart';
 import 'booking_detail_screen.dart';
 
 /// How one booking status is presented on the card.
@@ -22,12 +24,25 @@ class MyBookingsScreen extends StatefulWidget {
 }
 
 class _MyBookingsScreenState extends State<MyBookingsScreen> {
-  late Future<List<dynamic>> _bookingsFuture;
+  Future<List<dynamic>>? _bookingsFuture;
+
+  /// Assumed true so the installed apps behave exactly as before; only guest
+  /// browsing on the web can flip it.
+  bool _signedIn = true;
 
   @override
   void initState() {
     super.initState();
-    _bookingsFuture = ApiService.getMyBookings();
+    _init();
+  }
+
+  Future<void> _init() async {
+    final signedIn = !kGuestBrowsing || await ApiService.isLoggedIn();
+    if (!mounted) return;
+    setState(() {
+      _signedIn = signedIn;
+      _bookingsFuture = signedIn ? ApiService.getMyBookings() : null;
+    });
   }
 
   Future<void> _refresh() async {
@@ -94,12 +109,25 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('My Bookings')),
-      body: RefreshIndicator(
+      body: !_signedIn
+          ? SignInPrompt(
+              icon: Icons.receipt_long_outlined,
+              title: 'Your bookings live here',
+              message:
+                  'Sign in to see the services you have booked and follow '
+                  'their progress.',
+              onSignedIn: _init,
+            )
+          : RefreshIndicator(
         onRefresh: _refresh,
         child: FutureBuilder<List<dynamic>>(
           future: _bookingsFuture,
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+            // A null future reports ConnectionState.none, not waiting, so
+            // without this the "No bookings yet" empty state flashes up for
+            // the frame before _init() has decided who is looking.
+            if (_bookingsFuture == null ||
+                snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../config.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
+import '../widgets/sign_in_prompt.dart';
 import '../utils/location_update.dart';
 import '../widgets/refer_banner.dart';
 import 'phone_entry_screen.dart';
@@ -26,6 +28,10 @@ class ProfileTabState extends State<ProfileTab> {
   bool _isLoading = true;
   String? _errorMessage;
 
+  /// Assumed true so the installed apps behave exactly as before; only guest
+  /// browsing on the web can flip it.
+  bool _signedIn = true;
+
   @override
   void initState() {
     super.initState();
@@ -34,12 +40,26 @@ class ProfileTabState extends State<ProfileTab> {
   }
 
   Future<void> _loadReferralInfo() async {
-    final info = await ApiService.getReferralInfo();
-    if (mounted) setState(() => _referralInfo = info);
+    // Referral codes belong to an account; a guest has none.
+    if (kGuestBrowsing && !await ApiService.isLoggedIn()) return;
+    try {
+      final info = await ApiService.getReferralInfo();
+      if (mounted) setState(() => _referralInfo = info);
+    } catch (_) {}
   }
 
   Future<void> loadProfile() async {
+    final signedIn = !kGuestBrowsing || await ApiService.isLoggedIn();
+    if (!mounted) return;
+    if (!signedIn) {
+      setState(() {
+        _signedIn = false;
+        _isLoading = false;
+      });
+      return;
+    }
     setState(() {
+      _signedIn = true;
       _isLoading = true;
       _errorMessage = null;
     });
@@ -132,7 +152,18 @@ class ProfileTabState extends State<ProfileTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F0F3),
-      body: _isLoading && _profile == null
+      body: !_signedIn
+          ? SignInPrompt(
+              icon: Icons.person_outline_rounded,
+              title: 'Your account',
+              message:
+                  'Sign in to manage your details, addresses and referrals.',
+              onSignedIn: () {
+                loadProfile();
+                _loadReferralInfo();
+              },
+            )
+          : _isLoading && _profile == null
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: () async {
