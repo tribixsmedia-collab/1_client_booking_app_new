@@ -19,6 +19,7 @@ dependencies:
   flutter_native_splash: ^2.4.4
   cupertino_icons: ^1.0.8
   http: ^1.6.0
+  image_picker: ^1.2.3
   shared_preferences: ^2.5.5
   intl: ^0.20.3
   firebase_core: ^4.12.1

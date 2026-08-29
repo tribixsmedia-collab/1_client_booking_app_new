@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import '../services/cart_service.dart';
 import '../theme.dart';
+import '../widgets/tender_promo_card.dart';
 import '../widgets/header_carousel.dart';
 import '../widgets/spotlight_section.dart';
 import '../widgets/category_grid.dart';
@@ -985,6 +986,9 @@ class _HomeTabState extends State<HomeTab> {
             children: [
               desktop ? _buildDesktopHero(context) : _buildHero(context),
               SizedBox(height: desktop ? 8 : 24),
+
+              const TenderPromoCard(),
+              const SizedBox(height: 24),
 
               // --- Categories ---
               // On desktop these already sit inside the hero card, so the

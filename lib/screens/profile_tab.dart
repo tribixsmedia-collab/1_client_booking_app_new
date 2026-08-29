@@ -9,6 +9,7 @@ import 'phone_entry_screen.dart';
 import 'complete_profile_screen.dart';
 import 'notification_screen.dart';
 import 'cart_screen.dart';
+import 'my_tenders_screen.dart';
 import 'support_screen.dart';
 
 class ProfileTab extends StatefulWidget {
@@ -362,6 +363,11 @@ class ProfileTabState extends State<ProfileTab> {
             icon: Icons.location_on_outlined,
             label: 'Manage address',
             onTap: _changeLocation,
+          ),
+          _MenuRow(
+            icon: Icons.gavel_rounded,
+            label: 'My tenders',
+            onTap: () => _open(const MyTendersScreen()),
           ),
           _MenuRow(
             icon: Icons.notifications_none_rounded,
