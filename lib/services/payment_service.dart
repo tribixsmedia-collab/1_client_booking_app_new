@@ -1,8 +1,5 @@
-import 'dart:async';
-
-import 'package:razorpay_flutter/razorpay_flutter.dart';
-
 import 'api_service.dart';
+import 'checkout/checkout.dart';
 
 /// How a checkout attempt ended.
 enum PaymentOutcome {
@@ -31,38 +28,23 @@ class PaymentResult {
 
 /// Runs one Razorpay checkout for one booking.
 ///
-/// The plugin reports its result through callbacks rather than a Future, so
-/// this bridges the two with a Completer and hands back a single awaitable
-/// result. A fresh instance is used per attempt and disposed straight after,
-/// because a reused one keeps its old handlers attached.
+/// [Checkout] hides whether that is the native plugin or the browser SDK; both
+/// hand back the same [CheckoutOutcome]. A fresh instance is used per attempt
+/// and disposed straight after, because a reused native one keeps its old
+/// handlers attached.
 ///
 /// Nothing here decides what is owed. The amount, the order and the final
 /// verdict all come from the server; this only carries values between
 /// Razorpay and our API.
 class PaymentService {
-  final _razorpay = Razorpay();
-  Completer<PaymentResult>? _completer;
+  final _checkout = Checkout();
+  bool _inProgress = false;
 
   int? _bookingId;
   String? _orderId;
 
-  PaymentService() {
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _onSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _onError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _onExternalWallet);
-  }
-
-  /// Frees the plugin's native listeners. Call from the caller's `dispose`.
-  void dispose() {
-    _razorpay.clear();
-    // A checkout still open when the screen goes away would otherwise leave
-    // whoever is awaiting this hanging forever.
-    if (_completer != null && !_completer!.isCompleted) {
-      _completer!.complete(
-        const PaymentResult(PaymentOutcome.failed, 'Payment was cancelled.'),
-      );
-    }
-  }
+  /// Releases the checkout. Call from the caller's `dispose`.
+  void dispose() => _checkout.dispose();
 
   /// Opens Checkout for [bookingId] and resolves once the outcome is known.
   ///
@@ -74,7 +56,7 @@ class PaymentService {
     String contactPhone = '',
     String email = '',
   }) async {
-    if (_completer != null && !_completer!.isCompleted) {
+    if (_inProgress) {
       return const PaymentResult(
         PaymentOutcome.failed,
         'A payment is already in progress.',
@@ -93,10 +75,10 @@ class PaymentService {
 
     _bookingId = bookingId;
     _orderId = '${order['order_id']}';
-    _completer = Completer<PaymentResult>();
+    _inProgress = true;
 
     try {
-      _razorpay.open({
+      final outcome = await _checkout.open({
         // Every value below comes from the server's order response. The app
         // never composes an amount of its own.
         'key': order['key_id'],
@@ -104,7 +86,9 @@ class PaymentService {
         'amount': order['amount'], // paise
         'currency': order['currency'] ?? 'INR',
         'name': 'Make My House',
-        'description': description.isEmpty ? 'Booking #$bookingId' : description,
+        'description': description.isEmpty
+            ? 'Booking #$bookingId'
+            : description,
         'prefill': {
           if (contactPhone.isNotEmpty) 'contact': contactPhone,
           if (email.isNotEmpty) 'email': email,
@@ -112,39 +96,60 @@ class PaymentService {
         'retry': {'enabled': true, 'max_count': 1},
         'timeout': 300,
       });
-    } catch (e) {
-      _completer!.complete(
-        const PaymentResult(
-          PaymentOutcome.failed,
-          'Could not open the payment screen.',
-        ),
+      return await _resolve(outcome);
+    } catch (_) {
+      return const PaymentResult(
+        PaymentOutcome.failed,
+        'Could not open the payment screen.',
       );
+    } finally {
+      _inProgress = false;
     }
-
-    return _completer!.future;
   }
 
-  Future<void> _onSuccess(PaymentSuccessResponse response) async {
+  /// Turns what Checkout reported into what the customer is told, asking the
+  /// server before calling anything paid.
+  Future<PaymentResult> _resolve(CheckoutOutcome outcome) async {
+    switch (outcome.status) {
+      case CheckoutStatus.success:
+        return _verify(outcome);
+      case CheckoutStatus.cancelled:
+        return const PaymentResult(PaymentOutcome.failed, 'Payment cancelled.');
+      case CheckoutStatus.failed:
+        return PaymentResult(
+          PaymentOutcome.failed,
+          _readableError(outcome.message) ?? 'Payment failed.',
+        );
+      case CheckoutStatus.externalWallet:
+        // The customer left for a wallet app. Nothing is confirmed until the
+        // server says so, so treat it the same as any unconfirmed attempt.
+        return PaymentResult(
+          PaymentOutcome.pendingConfirmation,
+          'Complete the payment in ${outcome.walletName ?? 'your wallet'}. '
+          'This booking will update once it goes through.',
+        );
+    }
+  }
+
+  Future<PaymentResult> _verify(CheckoutOutcome outcome) async {
     // Razorpay says it worked, but only the server can confirm the money is
     // actually held -- so this stays unpaid until our own API agrees.
     try {
       await ApiService.verifyPayment(
-        orderId: response.orderId ?? _orderId ?? '',
-        paymentId: response.paymentId ?? '',
-        signature: response.signature ?? '',
+        orderId: outcome.orderId ?? _orderId ?? '',
+        paymentId: outcome.paymentId ?? '',
+        signature: outcome.signature ?? '',
       );
-      _finish(
-        PaymentResult(
-          PaymentOutcome.success,
-          'Payment successful.',
-          paymentId: response.paymentId,
-        ),
+      return PaymentResult(
+        PaymentOutcome.success,
+        'Payment successful.',
+        paymentId: outcome.paymentId,
       );
     } catch (_) {
       // Verification did not get through. The charge may well have gone
       // through, so ask the server what it knows rather than assuming either
       // way -- Razorpay's webhook may already have settled it.
-      _finish(await _reconcile(response.paymentId));
+      return _reconcile(outcome.paymentId);
     }
   }
 
@@ -176,43 +181,11 @@ class PaymentService {
     );
   }
 
-  void _onError(PaymentFailureResponse response) {
-    // Code 2 is the customer dismissing the sheet, which is not an error
-    // worth showing them in red.
-    final cancelled = response.code == Razorpay.PAYMENT_CANCELLED;
-    _finish(
-      PaymentResult(
-        PaymentOutcome.failed,
-        cancelled
-            ? 'Payment cancelled.'
-            : (_readableError(response.message) ?? 'Payment failed.'),
-      ),
-    );
-  }
-
-  void _onExternalWallet(ExternalWalletResponse response) {
-    // The customer left for a wallet app. Nothing is confirmed until the
-    // server says so, so treat it the same as any unconfirmed attempt.
-    _finish(
-      PaymentResult(
-        PaymentOutcome.pendingConfirmation,
-        'Complete the payment in ${response.walletName ?? 'your wallet'}. '
-        'This booking will update once it goes through.',
-      ),
-    );
-  }
-
   /// Razorpay puts a JSON blob in `message` for some failures; show the
   /// human sentence inside it rather than the raw payload.
   String? _readableError(String? message) {
     if (message == null || message.isEmpty) return null;
     final match = RegExp(r'"description"\s*:\s*"([^"]+)"').firstMatch(message);
     return match?.group(1) ?? message;
-  }
-
-  void _finish(PaymentResult result) {
-    if (_completer != null && !_completer!.isCompleted) {
-      _completer!.complete(result);
-    }
   }
 }

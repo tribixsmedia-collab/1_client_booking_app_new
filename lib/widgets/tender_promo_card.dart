@@ -10,19 +10,26 @@ import '../theme.dart';
 /// it would cost — so this says what it is for rather than sitting in the
 /// category grid where it would read as just another service.
 class TenderPromoCard extends StatelessWidget {
-  const TenderPromoCard({super.key});
+  const TenderPromoCard({
+    super.key,
+    this.padding = const EdgeInsets.symmetric(horizontal: 20),
+  });
+
+  /// The card sets its own page margin on a phone. In the desktop hero it
+  /// sits inside a column that already has one, so that caller passes zero.
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: padding,
       child: Material(
         borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const MyTendersScreen()),
-          ),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const MyTendersScreen())),
           child: Ink(
             decoration: const BoxDecoration(
               gradient: LinearGradient(

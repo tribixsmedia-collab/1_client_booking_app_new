@@ -734,6 +734,19 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _desktopHeroMosaic(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _desktopHeroBanners(context),
+        const SizedBox(height: 16),
+        // Sits under the carousel rather than across the full page: it is a
+        // side entrance to a different flow, not a headline.
+        const TenderPromoCard(padding: EdgeInsets.zero),
+      ],
+    );
+  }
+
+  Widget _desktopHeroBanners(BuildContext context) {
     final withImages = _headerBanners
         .whereType<Map>()
         .where((b) => (b['image'] as String?)?.isNotEmpty == true)
@@ -987,8 +1000,10 @@ class _HomeTabState extends State<HomeTab> {
               desktop ? _buildDesktopHero(context) : _buildHero(context),
               SizedBox(height: desktop ? 8 : 24),
 
-              const TenderPromoCard(),
-              const SizedBox(height: 24),
+              if (!desktop) ...[
+                const TenderPromoCard(),
+                const SizedBox(height: 24),
+              ],
 
               // --- Categories ---
               // On desktop these already sit inside the hero card, so the

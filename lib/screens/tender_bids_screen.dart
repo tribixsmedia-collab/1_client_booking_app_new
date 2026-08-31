@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
@@ -107,101 +108,107 @@ class _TenderBidsScreenState extends State<TenderBidsScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Compare bids')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.cloud_off_outlined,
-                      size: 48,
-                      color: AppColors.textGrey,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _errorMessage!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.textGrey),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _load,
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          : _bids.isEmpty
-          ? const Center(
-              child: Padding(
-                padding: EdgeInsets.all(40),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.gavel_rounded,
-                      size: 52,
-                      color: AppColors.textGrey,
-                    ),
-                    SizedBox(height: 14),
-                    Text(
-                      'No bids yet',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textDark,
+      body: DesktopCentered(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _errorMessage != null
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.cloud_off_outlined,
+                        size: 48,
+                        color: AppColors.textGrey,
                       ),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      'Vendors are still looking at your tender. '
-                      'We will notify you the moment one quotes.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.textGrey, fontSize: 13),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      Text(
+                        _errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.textGrey),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _load,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            )
-          : Column(
-              children: [
-                _buildSummary(),
-                _buildSortBar(),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _load,
-                    child: ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
-                      itemCount: _bids.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) => _BidCard(
-                        bid: Map<String, dynamic>.from(_bids[index]),
-                        isCheapest: _sort == 'amount' && index == 0,
-                        isBusy: _isAwarding,
-                        onAccept: () =>
-                            _accept(Map<String, dynamic>.from(_bids[index])),
+              )
+            : _bids.isEmpty
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.gavel_rounded,
+                        size: 52,
+                        color: AppColors.textGrey,
+                      ),
+                      SizedBox(height: 14),
+                      Text(
+                        'No bids yet',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Vendors are still looking at your tender. '
+                        'We will notify you the moment one quotes.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.textGrey,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : Column(
+                children: [
+                  _buildSummary(),
+                  _buildSortBar(),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _load,
+                      child: ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+                        itemCount: _bids.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) => _BidCard(
+                          bid: Map<String, dynamic>.from(_bids[index]),
+                          isCheapest: _sort == 'amount' && index == 0,
+                          isBusy: _isAwarding,
+                          onAccept: () =>
+                              _accept(Map<String, dynamic>.from(_bids[index])),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+      ),
     );
   }
 
   /// The spread of what has come in, against what the customer budgeted.
   Widget _buildSummary() {
-    final amounts = _bids
-        .map((b) => double.tryParse('${b['amount']}'))
-        .whereType<double>()
-        .toList()
-      ..sort();
+    final amounts =
+        _bids
+            .map((b) => double.tryParse('${b['amount']}'))
+            .whereType<double>()
+            .toList()
+          ..sort();
     if (amounts.isEmpty) return const SizedBox.shrink();
 
     return Container(
@@ -298,7 +305,8 @@ class _BidCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final difference = double.tryParse('${bid['difference_from_expected']}') ?? 0;
+    final difference =
+        double.tryParse('${bid['difference_from_expected']}') ?? 0;
     final overBudget = difference > 0;
     final milestones = (bid['milestones'] as List?) ?? const [];
 

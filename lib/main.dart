@@ -1,7 +1,11 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'config.dart';
 import 'theme.dart';
 import 'firebase_options.dart';
+import 'screens/main_navigation_screen.dart';
+import 'screens/phone_entry_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/api_service.dart';
 import 'services/branding_service.dart';
@@ -25,15 +29,32 @@ Future<void> main() async {
   BrandingService.refresh();
 
   // Already signed in from a previous session? Refresh the device token.
-  if (await ApiService.isLoggedIn()) {
+  final loggedIn = await ApiService.isLoggedIn();
+  if (loggedIn) {
     PushService.registerToken();
   }
 
-  runApp(const CustomerApp());
+  runApp(CustomerApp(home: _firstScreen(loggedIn)));
+}
+
+/// Where the app opens.
+///
+/// The installed apps get the animated splash. The web does not: the browser
+/// already shows its own loading state while the bundle downloads, so a
+/// second full-screen logo on top of that is two splashes in a row and a
+/// wait the visitor did not need. Everything the splash used to do while it
+/// waited - load branding, check the session - has already happened above.
+Widget _firstScreen(bool loggedIn) {
+  if (!kIsWeb) return const SplashScreen();
+  return loggedIn || kGuestBrowsing
+      ? const MainNavigationScreen()
+      : const PhoneEntryScreen();
 }
 
 class CustomerApp extends StatelessWidget {
-  const CustomerApp({super.key});
+  const CustomerApp({super.key, required this.home});
+
+  final Widget home;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +63,7 @@ class CustomerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       navigatorKey: navigatorKey,
-      home: const SplashScreen(),
+      home: home,
     );
   }
 }

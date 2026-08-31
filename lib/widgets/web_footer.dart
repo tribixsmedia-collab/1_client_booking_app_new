@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../screens/refer_earn_screen.dart';
 import '../screens/support_screen.dart';
-import '../theme.dart';
 import '../utils/breakpoints.dart';
 import '../utils/profile_gate.dart';
 import 'app_logo.dart';

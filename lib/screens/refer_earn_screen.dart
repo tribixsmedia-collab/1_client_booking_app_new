@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -79,40 +80,43 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(title: const Text('Refer & Earn')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _info == null
-          ? const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: Text(
-                  'Referrals are not available right now.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textGrey),
+      body: DesktopCentered(
+        maxWidth: kDesktopFormWidth,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _info == null
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Text(
+                    'Referrals are not available right now.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textGrey),
+                  ),
+                ),
+              )
+            : RefreshIndicator(
+                onRefresh: _load,
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    _buildHero(),
+                    const SizedBox(height: 20),
+                    _buildCodeCard(),
+                    const SizedBox(height: 20),
+                    _buildHowItWorks(),
+                    if ((_info!['terms'] as String?)?.isNotEmpty ?? false) ...[
+                      const SizedBox(height: 20),
+                      _buildTerms(),
+                    ],
+                    const SizedBox(height: 20),
+                    _buildEarnings(),
+                    const SizedBox(height: 32),
+                  ],
                 ),
               ),
-            )
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView(
-                padding: EdgeInsets.zero,
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  _buildHero(),
-                  const SizedBox(height: 20),
-                  _buildCodeCard(),
-                  const SizedBox(height: 20),
-                  _buildHowItWorks(),
-                  if ((_info!['terms'] as String?)?.isNotEmpty ?? false) ...[
-                    const SizedBox(height: 20),
-                    _buildTerms(),
-                  ],
-                  const SizedBox(height: 20),
-                  _buildEarnings(),
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
+      ),
     );
   }
 
@@ -481,11 +485,7 @@ class _ReferralRow extends StatelessWidget {
           CircleAvatar(
             radius: 16,
             backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-            child: const Icon(
-              Icons.person,
-              size: 17,
-              color: AppColors.primary,
-            ),
+            child: const Icon(Icons.person, size: 17, color: AppColors.primary),
           ),
           const SizedBox(width: 12),
           Expanded(

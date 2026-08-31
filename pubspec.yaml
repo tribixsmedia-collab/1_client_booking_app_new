@@ -48,6 +48,9 @@ flutter:
 flutter_native_splash:
   color: "#FFFFFF"
   image: assets/logo.png
+  # The web build has no splash - the browser's own loading state is enough,
+  # and a generated one shows a second full-screen logo before the app paints.
+  web: false
   android_12:
     color: "#FFFFFF"
     image: assets/logo.png

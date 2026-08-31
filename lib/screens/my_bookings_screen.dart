@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../config.dart';
@@ -109,58 +110,65 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('My Bookings')),
-      body: !_signedIn
-          ? SignInPrompt(
-              icon: Icons.receipt_long_outlined,
-              title: 'Your bookings live here',
-              message:
-                  'Sign in to see the services you have booked and follow '
-                  'their progress.',
-              onSignedIn: _init,
-            )
-          : RefreshIndicator(
-        onRefresh: _refresh,
-        child: FutureBuilder<List<dynamic>>(
-          future: _bookingsFuture,
-          builder: (context, snapshot) {
-            // A null future reports ConnectionState.none, not waiting, so
-            // without this the "No bookings yet" empty state flashes up for
-            // the frame before _init() has decided who is looking.
-            if (_bookingsFuture == null ||
-                snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return _centered(
-                icon: Icons.cloud_off_outlined,
-                title: 'Could not load your bookings',
-                message: '${snapshot.error}'.replaceFirst('Exception: ', ''),
-                action: TextButton.icon(
-                  onPressed: _refresh,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Try again'),
-                ),
-              );
-            }
-
-            final bookings = snapshot.data ?? [];
-            if (bookings.isEmpty) {
-              return _centered(
+      body: DesktopCentered(
+        maxWidth: kDesktopFormWidth,
+        child: !_signedIn
+            ? SignInPrompt(
                 icon: Icons.receipt_long_outlined,
-                title: 'No bookings yet',
+                title: 'Your bookings live here',
                 message:
-                    'Your booked services will appear here once you place an order.',
-              );
-            }
+                    'Sign in to see the services you have booked and follow '
+                    'their progress.',
+                onSignedIn: _init,
+              )
+            : RefreshIndicator(
+                onRefresh: _refresh,
+                child: FutureBuilder<List<dynamic>>(
+                  future: _bookingsFuture,
+                  builder: (context, snapshot) {
+                    // A null future reports ConnectionState.none, not waiting, so
+                    // without this the "No bookings yet" empty state flashes up for
+                    // the frame before _init() has decided who is looking.
+                    if (_bookingsFuture == null ||
+                        snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return _centered(
+                        icon: Icons.cloud_off_outlined,
+                        title: 'Could not load your bookings',
+                        message: '${snapshot.error}'.replaceFirst(
+                          'Exception: ',
+                          '',
+                        ),
+                        action: TextButton.icon(
+                          onPressed: _refresh,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Try again'),
+                        ),
+                      );
+                    }
 
-            return ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              itemCount: bookings.length,
-              itemBuilder: (context, index) =>
-                  _bookingCard(Map<String, dynamic>.from(bookings[index])),
-            );
-          },
-        ),
+                    final bookings = snapshot.data ?? [];
+                    if (bookings.isEmpty) {
+                      return _centered(
+                        icon: Icons.receipt_long_outlined,
+                        title: 'No bookings yet',
+                        message:
+                            'Your booked services will appear here once you place an order.',
+                      );
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      itemCount: bookings.length,
+                      itemBuilder: (context, index) => _bookingCard(
+                        Map<String, dynamic>.from(bookings[index]),
+                      ),
+                    );
+                  },
+                ),
+              ),
       ),
     );
   }
@@ -398,10 +406,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                       color: AppColors.textGrey,
                     ),
                   ),
-                  if (action != null) ...[
-                    const SizedBox(height: 12),
-                    action,
-                  ],
+                  if (action != null) ...[const SizedBox(height: 12), action],
                 ],
               ),
             ),

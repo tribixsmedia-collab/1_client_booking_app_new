@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/cart_service.dart';
@@ -195,7 +196,8 @@ class _ProVendorDetailScreenState extends State<ProVendorDetailScreen> {
                 child: ListView.separated(
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
                   itemCount: services.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final service = services[index];
                     final subcategoryName = service['subcategory_name'];
@@ -247,7 +249,9 @@ class _ProVendorDetailScreenState extends State<ProVendorDetailScreen> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -255,13 +259,15 @@ class _ProVendorDetailScreenState extends State<ProVendorDetailScreen> {
     if (_notFound) {
       return Scaffold(
         appBar: AppBar(title: const Text('Pro Vendor')),
-        body: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(32),
-            child: Text(
-              'This pro vendor is no longer available.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textGrey),
+        body: DesktopCentered(
+          child: const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Text(
+                'This pro vendor is no longer available.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textGrey),
+              ),
             ),
           ),
         ),
@@ -270,17 +276,26 @@ class _ProVendorDetailScreenState extends State<ProVendorDetailScreen> {
 
     final vendor = _vendor;
     if (vendor == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: DesktopCentered(
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
     }
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          _buildHeader(vendor),
-          SliverToBoxAdapter(child: _buildBody(vendor)),
-        ],
+      body: DesktopCentered(
+        child: CustomScrollView(
+          slivers: [
+            _buildHeader(vendor),
+            SliverToBoxAdapter(child: _buildBody(vendor)),
+          ],
+        ),
       ),
-      bottomNavigationBar: _buildBookBar(vendor),
+      bottomNavigationBar: DesktopCentered(
+        fillHeight: false,
+        child: _buildBookBar(vendor),
+      ),
     );
   }
 
@@ -441,8 +456,11 @@ class _ProVendorDetailScreenState extends State<ProVendorDetailScreen> {
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.place_outlined,
-                    size: 15, color: AppColors.textGrey),
+                const Icon(
+                  Icons.place_outlined,
+                  size: 15,
+                  color: AppColors.textGrey,
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -545,7 +563,9 @@ class _ProVendorDetailScreenState extends State<ProVendorDetailScreen> {
         children: [
           _statCell(
             reviews > 0 ? rating.toStringAsFixed(1) : '--',
-            reviews > 0 ? '$reviews review${reviews == 1 ? '' : 's'}' : 'No reviews',
+            reviews > 0
+                ? '$reviews review${reviews == 1 ? '' : 's'}'
+                : 'No reviews',
           ),
           _divider(),
           _statCell('$years', 'Yr${years == 1 ? '' : 's'} experience'),
@@ -577,11 +597,8 @@ class _ProVendorDetailScreenState extends State<ProVendorDetailScreen> {
     ),
   );
 
-  Widget _divider() => Container(
-    width: 1,
-    height: 32,
-    color: Colors.grey.shade200,
-  );
+  Widget _divider() =>
+      Container(width: 1, height: 32, color: Colors.grey.shade200);
 
   Widget _buildReviews() {
     if (_isLoading && _reviewData == null) {
@@ -634,10 +651,7 @@ class _ProVendorDetailScreenState extends State<ProVendorDetailScreen> {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-              ),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
             ),
           ),
         ),

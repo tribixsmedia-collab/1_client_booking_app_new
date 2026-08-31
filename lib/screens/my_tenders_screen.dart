@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
@@ -68,9 +69,9 @@ class _MyTendersScreenState extends State<MyTendersScreen>
       _tenders.where((t) => _closedStatuses.contains(t['status'])).toList();
 
   Future<void> _openCreate() async {
-    final created = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const CreateTenderScreen()),
-    );
+    final created = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const CreateTenderScreen()));
     if (created == true) _load();
   }
 
@@ -109,37 +110,39 @@ class _MyTendersScreenState extends State<MyTendersScreen>
         icon: const Icon(Icons.add),
         label: const Text('Post a tender'),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-          ? _stateMessage(
-              icon: Icons.cloud_off_outlined,
-              title: "Couldn't load your tenders",
-              message: _errorMessage!,
-              action: ElevatedButton.icon(
-                onPressed: _load,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
+      body: DesktopCentered(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _errorMessage != null
+            ? _stateMessage(
+                icon: Icons.cloud_off_outlined,
+                title: "Couldn't load your tenders",
+                message: _errorMessage!,
+                action: ElevatedButton.icon(
+                  onPressed: _load,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              )
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  _list(
+                    _active,
+                    Icons.post_add_rounded,
+                    'No tenders yet',
+                    'Post what you want built, set your budget, and let '
+                        'vendors send you their quotes.',
+                  ),
+                  _list(
+                    _closed,
+                    Icons.inventory_2_outlined,
+                    'Nothing closed yet',
+                    'Completed and cancelled tenders land here.',
+                  ),
+                ],
               ),
-            )
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _list(
-                  _active,
-                  Icons.post_add_rounded,
-                  'No tenders yet',
-                  'Post what you want built, set your budget, and let '
-                      'vendors send you their quotes.',
-                ),
-                _list(
-                  _closed,
-                  Icons.inventory_2_outlined,
-                  'Nothing closed yet',
-                  'Completed and cancelled tenders land here.',
-                ),
-              ],
-            ),
+      ),
     );
   }
 
@@ -189,7 +192,11 @@ class _MyTendersScreenState extends State<MyTendersScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: AppColors.textGrey.withValues(alpha: 0.5)),
+            Icon(
+              icon,
+              size: 56,
+              color: AppColors.textGrey.withValues(alpha: 0.5),
+            ),
             const SizedBox(height: 16),
             Text(
               title,

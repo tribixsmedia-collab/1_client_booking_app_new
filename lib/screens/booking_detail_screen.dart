@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
@@ -163,277 +164,283 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text('Booking #${_booking['id']}')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          // Status badge
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: _statusColor(status).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  status.replaceAll('_', ' '),
-                  style: TextStyle(
-                    color: _statusColor(status),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Text(
-                date,
-                style: const TextStyle(color: AppColors.textGrey, fontSize: 13),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // Service info
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      body: DesktopCentered(
+        maxWidth: kDesktopFormWidth,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            // Status badge
+            Row(
               children: [
-                Text(
-                  categoryName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
                   ),
-                ),
-                if (subcategoryName != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    subcategoryName,
-                    style: const TextStyle(
-                      color: AppColors.textGrey,
+                  decoration: BoxDecoration(
+                    color: _statusColor(status).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    status.replaceAll('_', ' '),
+                    style: TextStyle(
+                      color: _statusColor(status),
+                      fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),
                   ),
-                ],
-                if (servicesJson.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  const Divider(),
-                  ...servicesJson.map((svc) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${svc['name']}',
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          ),
-                          Text(
-                            '×${svc['qty']} — ₹${svc['price']}',
-                            style: const TextStyle(
-                              color: AppColors.textGrey,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                ],
+                ),
+                const Spacer(),
+                Text(
+                  date,
+                  style: const TextStyle(
+                    color: AppColors.textGrey,
+                    fontSize: 13,
+                  ),
+                ),
               ],
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
-          // Schedule
-          _InfoRow(icon: Icons.calendar_today, label: 'Date', value: date),
-          _InfoRow(icon: Icons.access_time, label: 'Time', value: time),
-          if (vendorName != null)
-            _InfoRow(icon: Icons.person, label: 'Vendor', value: vendorName),
-          if (preferredVendorName != null) ...[
-            const SizedBox(height: 8),
-            _RequestedProCard(
-              proName: '$preferredVendorName',
-              assignedVendorName: vendorName == null ? null : '$vendorName',
-              onTap: preferredVendorId == null
-                  ? null
-                  : () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ProVendorDetailScreen(
-                          vendorId: preferredVendorId as int,
-                        ),
+            // Service info
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    categoryName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  if (subcategoryName != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      subcategoryName,
+                      style: const TextStyle(
+                        color: AppColors.textGrey,
+                        fontSize: 13,
                       ),
                     ),
-            ),
-            const SizedBox(height: 4),
-          ],
-          if (address.isNotEmpty)
-            _InfoRow(
-              icon: Icons.location_on,
-              label: 'Address',
-              value: [
-                address,
-                if (district.isNotEmpty) district,
-                if (state.isNotEmpty) state,
-                if (pincode.isNotEmpty) pincode,
-              ].join(', '),
-            ),
-          if (phone.isNotEmpty)
-            _InfoRow(icon: Icons.phone, label: 'Phone', value: phone),
-          if (notes.isNotEmpty)
-            _InfoRow(icon: Icons.notes, label: 'Notes', value: notes),
-
-          // Amount
-          if (double.tryParse('$amount') != null &&
-              double.parse('$amount') > 0) ...[
-            const SizedBox(height: 8),
-            _InfoRow(
-              icon: Icons.payment,
-              label: 'Amount',
-              value: '₹$amount ($paymentStatus)',
-            ),
-
-            // Anything still owed on a live booking can be paid here. Hidden
-            // once paid, and on a cancelled booking there is nothing to pay.
-            if (paymentStatus != 'PAID' && status != 'CANCELLED') ...[
-              const SizedBox(height: 12),
-              PayNowCard(
-                bookingId: _booking['id'],
-                amount: '$amount',
-                description: categoryName.isEmpty
-                    ? 'Booking #${_booking['id']}'
-                    : '$categoryName booking',
-                contactPhone: '$phone',
-                onPaid: _refreshBooking,
-                autoStart: widget.startPayment,
+                  ],
+                  if (servicesJson.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    const Divider(),
+                    ...servicesJson.map((svc) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${svc['name']}',
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ),
+                            Text(
+                              '×${svc['qty']} — ₹${svc['price']}',
+                              style: const TextStyle(
+                                color: AppColors.textGrey,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ],
               ),
+            ),
+            const SizedBox(height: 16),
+
+            // Schedule
+            _InfoRow(icon: Icons.calendar_today, label: 'Date', value: date),
+            _InfoRow(icon: Icons.access_time, label: 'Time', value: time),
+            if (vendorName != null)
+              _InfoRow(icon: Icons.person, label: 'Vendor', value: vendorName),
+            if (preferredVendorName != null) ...[
+              const SizedBox(height: 8),
+              _RequestedProCard(
+                proName: '$preferredVendorName',
+                assignedVendorName: vendorName == null ? null : '$vendorName',
+                onTap: preferredVendorId == null
+                    ? null
+                    : () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ProVendorDetailScreen(
+                            vendorId: preferredVendorId as int,
+                          ),
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 4),
             ],
-          ],
+            if (address.isNotEmpty)
+              _InfoRow(
+                icon: Icons.location_on,
+                label: 'Address',
+                value: [
+                  address,
+                  if (district.isNotEmpty) district,
+                  if (state.isNotEmpty) state,
+                  if (pincode.isNotEmpty) pincode,
+                ].join(', '),
+              ),
+            if (phone.isNotEmpty)
+              _InfoRow(icon: Icons.phone, label: 'Phone', value: phone),
+            if (notes.isNotEmpty)
+              _InfoRow(icon: Icons.notes, label: 'Notes', value: notes),
 
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 16),
+            // Amount
+            if (double.tryParse('$amount') != null &&
+                double.parse('$amount') > 0) ...[
+              const SizedBox(height: 8),
+              _InfoRow(
+                icon: Icons.payment,
+                label: 'Amount',
+                value: '₹$amount ($paymentStatus)',
+              ),
 
-          // Timeline
-          const Text(
-            'Tracking',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          const SizedBox(height: 16),
+              // Anything still owed on a live booking can be paid here. Hidden
+              // once paid, and on a cancelled booking there is nothing to pay.
+              if (paymentStatus != 'PAID' && status != 'CANCELLED') ...[
+                const SizedBox(height: 12),
+                PayNowCard(
+                  bookingId: _booking['id'],
+                  amount: '$amount',
+                  description: categoryName.isEmpty
+                      ? 'Booking #${_booking['id']}'
+                      : '$categoryName booking',
+                  contactPhone: '$phone',
+                  onPaid: _refreshBooking,
+                  autoStart: widget.startPayment,
+                ),
+              ],
+            ],
 
-          BookingTimeline(
-            status: status,
-            paymentStatus: paymentStatus,
-            createdAt: _booking['created_at'],
-            assignedAt: _booking['assigned_at'],
-            completedAt: _booking['completed_at'],
-          ),
-
-          const SizedBox(height: 24),
-          // Review section
-          if (status == 'COMPLETED') ...[
             const SizedBox(height: 24),
             const Divider(),
             const SizedBox(height: 16),
 
-            if (_isLoadingReview)
-              const Center(child: CircularProgressIndicator())
-            else if (_reviewData != null &&
-                _reviewData!['reviewed'] != false &&
-                _reviewData!['rating'] != null) ...[
-              // Already reviewed — show the review
-              const Text(
-                'Your Review',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+            // Timeline
+            const Text(
+              'Tracking',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 16),
+
+            BookingTimeline(
+              status: status,
+              paymentStatus: paymentStatus,
+              createdAt: _booking['created_at'],
+              assignedAt: _booking['assigned_at'],
+              completedAt: _booking['completed_at'],
+            ),
+
+            const SizedBox(height: 24),
+            // Review section
+            if (status == 'COMPLETED') ...[
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+
+              if (_isLoadingReview)
+                const Center(child: CircularProgressIndicator())
+              else if (_reviewData != null &&
+                  _reviewData!['reviewed'] != false &&
+                  _reviewData!['rating'] != null) ...[
+                // Already reviewed — show the review
+                const Text(
+                  'Your Review',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        ...List.generate(5, (i) {
-                          return Icon(
-                            i < (_reviewData!['rating'] as int)
-                                ? Icons.star
-                                : Icons.star_border,
-                            color: Colors.amber,
-                            size: 22,
-                          );
-                        }),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_reviewData!['rating']}/5',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          ...List.generate(5, (i) {
+                            return Icon(
+                              i < (_reviewData!['rating'] as int)
+                                  ? Icons.star
+                                  : Icons.star_border,
+                              color: Colors.amber,
+                              size: 22,
+                            );
+                          }),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${_reviewData!['rating']}/5',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
+                        ],
+                      ),
+                      if ((_reviewData!['comment'] as String?)?.isNotEmpty ??
+                          false) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _reviewData!['comment'],
+                          style: const TextStyle(fontSize: 13, height: 1.4),
                         ),
                       ],
-                    ),
-                    if ((_reviewData!['comment'] as String?)?.isNotEmpty ??
-                        false) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        _reviewData!['comment'],
-                        style: const TextStyle(fontSize: 13, height: 1.4),
-                      ),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ] else ...[
-              // Not reviewed — show button
-              ElevatedButton.icon(
-                onPressed: _openReviewScreen,
-                icon: const Icon(Icons.star_outline),
-                label: const Text('Rate & Review'),
-                style: ElevatedButton.styleFrom(
+              ] else ...[
+                // Not reviewed — show button
+                ElevatedButton.icon(
+                  onPressed: _openReviewScreen,
+                  icon: const Icon(Icons.star_outline),
+                  label: const Text('Rate & Review'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ],
+            ],
+            // Cancel button
+            if (status == 'PENDING')
+              OutlinedButton(
+                onPressed: _isCancelling ? null : _cancelBooking,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.red),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-              ),
-            ],
-          ],
-          // Cancel button
-          if (status == 'PENDING')
-            OutlinedButton(
-              onPressed: _isCancelling ? null : _cancelBooking,
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.red),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: _isCancelling
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.red,
+                child: _isCancelling
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.red,
+                        ),
+                      )
+                    : const Text(
+                        'Cancel Booking',
+                        style: TextStyle(color: Colors.red),
                       ),
-                    )
-                  : const Text(
-                      'Cancel Booking',
-                      style: TextStyle(color: Colors.red),
-                    ),
-            ),
-        ],
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -514,7 +521,6 @@ class _RequestedProCard extends StatelessWidget {
     );
   }
 }
-
 
 class _InfoRow extends StatelessWidget {
   final IconData icon;

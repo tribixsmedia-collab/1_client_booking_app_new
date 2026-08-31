@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../config.dart';
 import '../services/api_service.dart';
@@ -153,44 +154,47 @@ class ProfileTabState extends State<ProfileTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F0F3),
-      body: !_signedIn
-          ? SignInPrompt(
-              icon: Icons.person_outline_rounded,
-              title: 'Your account',
-              message:
-                  'Sign in to manage your details, addresses and referrals.',
-              onSignedIn: () {
-                loadProfile();
-                _loadReferralInfo();
-              },
-            )
-          : _isLoading && _profile == null
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () async {
-                await Future.wait([loadProfile(), _loadReferralInfo()]);
-              },
-              child: ListView(
-                padding: EdgeInsets.zero,
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  _buildHeader(context),
-                  const SizedBox(height: 10),
-                  _buildMenu(),
-
-                  // --- Refer & earn, just above logout ---
-                  if (_referralInfo != null) ...[
-                    const SizedBox(height: 18),
-                    ReferCard(info: _referralInfo!),
-                    const SizedBox(height: 18),
-                  ] else
+      body: DesktopCentered(
+        maxWidth: kDesktopFormWidth,
+        child: !_signedIn
+            ? SignInPrompt(
+                icon: Icons.person_outline_rounded,
+                title: 'Your account',
+                message:
+                    'Sign in to manage your details, addresses and referrals.',
+                onSignedIn: () {
+                  loadProfile();
+                  _loadReferralInfo();
+                },
+              )
+            : _isLoading && _profile == null
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: () async {
+                  await Future.wait([loadProfile(), _loadReferralInfo()]);
+                },
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    _buildHeader(context),
                     const SizedBox(height: 10),
+                    _buildMenu(),
 
-                  _buildLogout(),
-                  const SizedBox(height: 32),
-                ],
+                    // --- Refer & earn, just above logout ---
+                    if (_referralInfo != null) ...[
+                      const SizedBox(height: 18),
+                      ReferCard(info: _referralInfo!),
+                      const SizedBox(height: 18),
+                    ] else
+                      const SizedBox(height: 10),
+
+                    _buildLogout(),
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 

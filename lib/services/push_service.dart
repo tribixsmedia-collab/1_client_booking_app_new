@@ -32,7 +32,8 @@ class PushService {
   /// in-app notification list and unread badge are unaffected - they are
   /// served by our own backend, not by FCM.
   static bool get isSupported =>
-      !kIsWeb || (DefaultFirebaseOptions.webConfigured && webVapidKey.isNotEmpty);
+      !kIsWeb ||
+      (DefaultFirebaseOptions.webConfigured && webVapidKey.isNotEmpty);
 
   static bool get _isIOS =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;

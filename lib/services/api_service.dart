@@ -228,7 +228,8 @@ class ApiService {
             if (formSubmissionId != null) 'form_submission': formSubmissionId,
             'discount_amount': discountAmount.toStringAsFixed(2),
             'coupon_code': couponCode,
-            if (preferredVendorId != null) 'preferred_vendor': preferredVendorId,
+            if (preferredVendorId != null)
+              'preferred_vendor': preferredVendorId,
           }),
         );
       } else {
@@ -381,7 +382,9 @@ class ApiService {
   /// Services this customer opened before, newest first.
   static Future<List<dynamic>> getRecentlyViewed() async {
     try {
-      final res = await _authorizedGet('$kApiBaseUrl/customers/recently-viewed/');
+      final res = await _authorizedGet(
+        '$kApiBaseUrl/customers/recently-viewed/',
+      );
       if (res.statusCode == 200) return jsonDecode(res.body);
     } catch (_) {}
     return [];
@@ -873,7 +876,8 @@ class ApiService {
       'requirements': requirements,
       if (areaSqft != null) 'area_sqft': areaSqft,
       'expected_budget': expectedBudget,
-      if (preferredStartDate != null) 'preferred_start_date': preferredStartDate,
+      if (preferredStartDate != null)
+        'preferred_start_date': preferredStartDate,
       if (durationDays != null) 'duration_days': durationDays,
       if (bidDeadline != null) 'bid_deadline': bidDeadline,
       'address_text': addressText,

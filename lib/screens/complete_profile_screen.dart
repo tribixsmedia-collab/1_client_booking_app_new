@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/api_service.dart';
@@ -169,122 +170,125 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           widget.isEditing ? 'Edit Profile' : 'Complete Your Profile',
         ),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            Text(
-              widget.isEditing
-                  ? 'Update your details below.'
-                  : 'Please fill in your details before placing a booking.',
-              style: const TextStyle(color: AppColors.textGrey),
-            ),
-            const SizedBox(height: 20),
-
-            _requiredField('First Name', _firstNameController),
-            const SizedBox(height: 12),
-            _optionalField('Last Name', _lastNameController),
-            const SizedBox(height: 12),
-            _optionalField(
-              'Email',
-              _emailController,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 12),
-            _requiredField('Address', _addressController, maxLines: 2),
-            const SizedBox(height: 12),
-            _requiredField('State', _stateController),
-            const SizedBox(height: 12),
-            _requiredField('District', _districtController),
-            const SizedBox(height: 12),
-            _requiredField(
-              'Pincode',
-              _pincodeController,
-              keyboardType: TextInputType.number,
-            ),
-
-            // Location status
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _latitude != null
-                    ? Colors.green.shade50
-                    : Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: _latitude != null
-                      ? Colors.green.shade200
-                      : Colors.orange.shade200,
-                ),
+      body: DesktopCentered(
+        maxWidth: kDesktopFormWidth,
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Text(
+                widget.isEditing
+                    ? 'Update your details below.'
+                    : 'Please fill in your details before placing a booking.',
+                style: const TextStyle(color: AppColors.textGrey),
               ),
-              child: Row(
-                children: [
-                  if (_isGettingLocation)
-                    const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  else
-                    Icon(
-                      _latitude != null
-                          ? Icons.location_on
-                          : Icons.location_off,
-                      size: 20,
-                      color: _latitude != null ? Colors.green : Colors.orange,
-                    ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _locationStatus ?? 'Detecting location...',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: _latitude != null
-                            ? Colors.green.shade700
-                            : Colors.orange.shade700,
-                      ),
-                    ),
+              const SizedBox(height: 20),
+
+              _requiredField('First Name', _firstNameController),
+              const SizedBox(height: 12),
+              _optionalField('Last Name', _lastNameController),
+              const SizedBox(height: 12),
+              _optionalField(
+                'Email',
+                _emailController,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 12),
+              _requiredField('Address', _addressController, maxLines: 2),
+              const SizedBox(height: 12),
+              _requiredField('State', _stateController),
+              const SizedBox(height: 12),
+              _requiredField('District', _districtController),
+              const SizedBox(height: 12),
+              _requiredField(
+                'Pincode',
+                _pincodeController,
+                keyboardType: TextInputType.number,
+              ),
+
+              // Location status
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _latitude != null
+                      ? Colors.green.shade50
+                      : Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: _latitude != null
+                        ? Colors.green.shade200
+                        : Colors.orange.shade200,
                   ),
-                  if (!_isGettingLocation && _latitude == null)
-                    GestureDetector(
-                      onTap: _captureLocation,
-                      child: const Text(
-                        'Retry',
+                ),
+                child: Row(
+                  children: [
+                    if (_isGettingLocation)
+                      const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else
+                      Icon(
+                        _latitude != null
+                            ? Icons.location_on
+                            : Icons.location_off,
+                        size: 20,
+                        color: _latitude != null ? Colors.green : Colors.orange,
+                      ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _locationStatus ?? 'Detecting location...',
                         style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
                           fontSize: 13,
+                          color: _latitude != null
+                              ? Colors.green.shade700
+                              : Colors.orange.shade700,
                         ),
                       ),
                     ),
-                ],
-              ),
-            ),
-
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 12),
-              Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-            ],
-
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _isSaving ? null : _save,
-              child: _isSaving
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+                    if (!_isGettingLocation && _latitude == null)
+                      GestureDetector(
+                        onTap: _captureLocation,
+                        child: const Text(
+                          'Retry',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
-                    )
-                  : Text(
-                      widget.isEditing ? 'Save Changes' : 'Save & Continue',
-                    ),
-            ),
-          ],
+                  ],
+                ),
+              ),
+
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 12),
+                Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+              ],
+
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _isSaving ? null : _save,
+                child: _isSaving
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        widget.isEditing ? 'Save Changes' : 'Save & Continue',
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -40,13 +40,14 @@ class PromoCardTile extends StatelessWidget {
         onTap: onTap,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // Square on a phone. Left alone that means a 1200px-tall card in
-            // a desktop browser, so past a point the card stops growing
-            // downwards and becomes a wide banner instead.
-            final side = constraints.maxWidth;
+            // Full width of whatever it is given - the page on a phone, the
+            // content column on the web. Only the height is capped: the card
+            // is square on a phone, and letting that ratio hold across a
+            // 1240px column would make it a 1240px-tall block.
+            final width = constraints.maxWidth;
             return SizedBox(
-              width: double.infinity,
-              height: side > 380 ? 380 : side,
+              width: width,
+              height: width > 380 ? 380 : width,
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.grey.shade200,

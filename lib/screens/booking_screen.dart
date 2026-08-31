@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
@@ -235,256 +236,262 @@ class _BookingScreenState extends State<BookingScreen> {
     if (_isCheckingForm || _isLoadingProfile) {
       return Scaffold(
         appBar: AppBar(title: Text('Book ${widget.categoryName}')),
-        body: const Center(child: CircularProgressIndicator()),
+        body: DesktopCentered(
+          maxWidth: kDesktopFormWidth,
+          child: const Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(title: Text('Book ${widget.categoryName}')),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: ListView(
-          children: [
-            Text(
-              widget.categoryName,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            Text(
-              'Starting from ₹${widget.basePrice}',
-              style: const TextStyle(color: AppColors.textGrey),
-            ),
-            const SizedBox(height: 24),
+      body: DesktopCentered(
+        maxWidth: kDesktopFormWidth,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: ListView(
+            children: [
+              Text(
+                widget.categoryName,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              Text(
+                'Starting from ₹${widget.basePrice}',
+                style: const TextStyle(color: AppColors.textGrey),
+              ),
+              const SizedBox(height: 24),
 
-            // Date picker
-            ListTile(
-              tileColor: AppColors.cardBackground,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              leading: const Icon(Icons.calendar_today),
-              title: Text(
-                _selectedDate == null
-                    ? 'Select Date'
-                    : _formatDate(_selectedDate!),
-              ),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: _pickDate,
-            ),
-            const SizedBox(height: 12),
-
-            // Time picker
-            ListTile(
-              tileColor: AppColors.cardBackground,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              leading: const Icon(Icons.access_time),
-              title: Text(
-                _selectedTime == null
-                    ? 'Select Time'
-                    : _selectedTime!.format(context),
-              ),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: _pickTime,
-            ),
-            const SizedBox(height: 20),
-
-            // Address section
-            Row(
-              children: [
-                const Icon(
-                  Icons.location_on,
-                  size: 20,
-                  color: AppColors.textGrey,
+              // Date picker
+              ListTile(
+                tileColor: AppColors.cardBackground,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Service Address',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                leading: const Icon(Icons.calendar_today),
+                title: Text(
+                  _selectedDate == null
+                      ? 'Select Date'
+                      : _formatDate(_selectedDate!),
                 ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // Address display card
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: _pickDate,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 12),
+
+              // Time picker
+              ListTile(
+                tileColor: AppColors.cardBackground,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                leading: const Icon(Icons.access_time),
+                title: Text(
+                  _selectedTime == null
+                      ? 'Select Time'
+                      : _selectedTime!.format(context),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: _pickTime,
+              ),
+              const SizedBox(height: 20),
+
+              // Address section
+              Row(
                 children: [
-                  // Address line
-                  if (!_isAddressEditable) ...[
-                    Text(
-                      _addressController.text.isNotEmpty
-                          ? _addressController.text
-                          : 'No address set',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    // District, State, Pincode
-                    if (_profileDistrict.isNotEmpty ||
-                        _profileState.isNotEmpty ||
-                        _profilePincode.isNotEmpty) ...[
-                      const SizedBox(height: 6),
+                  const Icon(
+                    Icons.location_on,
+                    size: 20,
+                    color: AppColors.textGrey,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Service Address',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // Address display card
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Address line
+                    if (!_isAddressEditable) ...[
                       Text(
-                        [
-                          if (_profileDistrict.isNotEmpty) _profileDistrict,
-                          if (_profileState.isNotEmpty) _profileState,
-                          if (_profilePincode.isNotEmpty) _profilePincode,
-                        ].join(', '),
+                        _addressController.text.isNotEmpty
+                            ? _addressController.text
+                            : 'No address set',
                         style: const TextStyle(
-                          color: AppColors.textGrey,
-                          fontSize: 13,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ],
-                    const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: () => setState(() => _isAddressEditable = true),
-                      child: const Text(
-                        'Click to edit address',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ] else ...[
-                    // Editable address
-                    TextField(
-                      controller: _addressController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Address',
-                        hintText: 'Enter your address',
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            [
-                              if (_profileDistrict.isNotEmpty)
-                                'District: $_profileDistrict',
-                              if (_profileState.isNotEmpty)
-                                'State: $_profileState',
-                              if (_profilePincode.isNotEmpty)
-                                'Pincode: $_profilePincode',
-                            ].join(' • '),
-                            style: const TextStyle(
-                              color: AppColors.textGrey,
-                              fontSize: 12,
-                            ),
+                      // District, State, Pincode
+                      if (_profileDistrict.isNotEmpty ||
+                          _profileState.isNotEmpty ||
+                          _profilePincode.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          [
+                            if (_profileDistrict.isNotEmpty) _profileDistrict,
+                            if (_profileState.isNotEmpty) _profileState,
+                            if (_profilePincode.isNotEmpty) _profilePincode,
+                          ].join(', '),
+                          style: const TextStyle(
+                            color: AppColors.textGrey,
+                            fontSize: 13,
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () =>
-                            setState(() => _isAddressEditable = false),
-                        child: const Text('Done'),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () => setState(() => _isAddressEditable = true),
+                        child: const Text(
+                          'Click to edit address',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      // Editable address
+                      TextField(
+                        controller: _addressController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Address',
+                          hintText: 'Enter your address',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              [
+                                if (_profileDistrict.isNotEmpty)
+                                  'District: $_profileDistrict',
+                                if (_profileState.isNotEmpty)
+                                  'State: $_profileState',
+                                if (_profilePincode.isNotEmpty)
+                                  'Pincode: $_profilePincode',
+                              ].join(' • '),
+                              style: const TextStyle(
+                                color: AppColors.textGrey,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () =>
+                              setState(() => _isAddressEditable = false),
+                          child: const Text('Done'),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
 
-            const SizedBox(height: 16),
-
-            // Notes
-            TextField(
-              controller: _notesController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Describe the issue (optional)',
-                hintText: 'e.g. Kitchen tap has been leaking for 2 days',
-              ),
-            ),
-
-            if (_cart.preferredVendorAppliesTo(widget.categoryId)) ...[
               const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.07),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.verified,
-                      size: 18,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Requested pro: ${_cart.preferredVendorName}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: _cart.clearPreferredVendor,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4),
-                        child: Icon(
-                          Icons.close,
-                          size: 18,
-                          color: AppColors.textGrey,
-                        ),
-                      ),
-                    ),
-                  ],
+
+              // Notes
+              TextField(
+                controller: _notesController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Describe the issue (optional)',
+                  hintText: 'e.g. Kitchen tap has been leaking for 2 days',
                 ),
               ),
-              const SizedBox(height: 4),
-              const Text(
-                'We will pass your request on — the final vendor is confirmed '
-                'by our team.',
-                style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+
+              if (_cart.preferredVendorAppliesTo(widget.categoryId)) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.verified,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Requested pro: ${_cart.preferredVendorName}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: _cart.clearPreferredVendor,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Icon(
+                            Icons.close,
+                            size: 18,
+                            color: AppColors.textGrey,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'We will pass your request on — the final vendor is confirmed '
+                  'by our team.',
+                  style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+                ),
+              ],
+
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 12),
+                Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+              ],
+
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _isSubmitting ? null : _submitBooking,
+                child: _isSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Confirm Booking'),
               ),
             ],
-
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 12),
-              Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-            ],
-
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _isSubmitting ? null : _submitBooking,
-              child: _isSubmitting
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Confirm Booking'),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -274,9 +275,7 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
         SnackBar(
           content: Text(message),
           // These say what to change, so give the longer ones time to be read.
-          duration: Duration(
-            milliseconds: message.length > 80 ? 6000 : 4000,
-          ),
+          duration: Duration(milliseconds: message.length > 80 ? 6000 : 4000),
         ),
       );
   }
@@ -286,244 +285,251 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Post a tender')),
-      bottomNavigationBar: _buildActions(),
-      body: _loadingCategories
-          ? const Center(child: CircularProgressIndicator())
-          : _loadError != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.cloud_off_outlined,
-                      size: 48,
-                      color: AppColors.textGrey,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _loadError!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.textGrey),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _loadingCategories = true;
-                          _loadError = null;
-                        });
-                        _loadCategories();
-                      },
-                      child: const Text('Retry'),
-                    ),
-                  ],
+      bottomNavigationBar: DesktopCentered(
+        fillHeight: false,
+        maxWidth: kDesktopFormWidth,
+        child: _buildActions(),
+      ),
+      body: DesktopCentered(
+        maxWidth: kDesktopFormWidth,
+        child: _loadingCategories
+            ? const Center(child: CircularProgressIndicator())
+            : _loadError != null
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.cloud_off_outlined,
+                        size: 48,
+                        color: AppColors.textGrey,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _loadError!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.textGrey),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _loadingCategories = true;
+                            _loadError = null;
+                          });
+                          _loadCategories();
+                        },
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            )
-          : Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                children: [
-                  _section('What do you need built?'),
-                  _field(
-                    controller: _title,
-                    label: 'Title',
-                    hint: 'e.g. 3BHK ground-floor construction',
-                    validator: _required,
-                  ),
-                  _dropdown<String>(
-                    label: 'Project type',
-                    value: _projectType,
-                    items: _projectTypes.entries
-                        .map(
-                          (e) => DropdownMenuItem(
-                            value: e.key,
-                            child: Text(e.value),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) => setState(() => _projectType = v!),
-                  ),
-                  _dropdown<int>(
-                    label: 'Type of work',
-                    value: _categoryId,
-                    hint: 'Choose a category',
-                    items: _categories
-                        .map(
-                          (c) => DropdownMenuItem<int>(
-                            value: c['id'] as int,
-                            child: Text('${c['name']}'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) => setState(() {
-                      _categoryId = v;
-                      // The old pick belongs to a different category now.
-                      _subcategoryId = null;
-                    }),
-                  ),
-                  if (_subcategories.isNotEmpty)
+              )
+            : Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  children: [
+                    _section('What do you need built?'),
+                    _field(
+                      controller: _title,
+                      label: 'Title',
+                      hint: 'e.g. 3BHK ground-floor construction',
+                      validator: _required,
+                    ),
+                    _dropdown<String>(
+                      label: 'Project type',
+                      value: _projectType,
+                      items: _projectTypes.entries
+                          .map(
+                            (e) => DropdownMenuItem(
+                              value: e.key,
+                              child: Text(e.value),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => _projectType = v!),
+                    ),
                     _dropdown<int>(
-                      label: 'Speciality (optional)',
-                      value: _subcategoryId,
-                      hint: 'Any vendor in this category',
-                      items: [
-                        const DropdownMenuItem<int>(
-                          value: null,
-                          child: Text('Any vendor in this category'),
+                      label: 'Type of work',
+                      value: _categoryId,
+                      hint: 'Choose a category',
+                      items: _categories
+                          .map(
+                            (c) => DropdownMenuItem<int>(
+                              value: c['id'] as int,
+                              child: Text('${c['name']}'),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() {
+                        _categoryId = v;
+                        // The old pick belongs to a different category now.
+                        _subcategoryId = null;
+                      }),
+                    ),
+                    if (_subcategories.isNotEmpty)
+                      _dropdown<int>(
+                        label: 'Speciality (optional)',
+                        value: _subcategoryId,
+                        hint: 'Any vendor in this category',
+                        items: [
+                          const DropdownMenuItem<int>(
+                            value: null,
+                            child: Text('Any vendor in this category'),
+                          ),
+                          ..._subcategories.map(
+                            (s) => DropdownMenuItem<int>(
+                              value: s['id'] as int,
+                              child: Text('${s['name']}'),
+                            ),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _subcategoryId = v),
+                      ),
+                    _field(
+                      controller: _description,
+                      label: 'Description',
+                      hint: 'What the project involves',
+                      maxLines: 4,
+                      validator: _required,
+                    ),
+                    _field(
+                      controller: _requirements,
+                      label: 'Requirements (optional)',
+                      hint: 'Materials, finishes, anything specific',
+                      maxLines: 3,
+                    ),
+                    _field(
+                      controller: _area,
+                      label: 'Built-up area in sq ft (optional)',
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    ),
+
+                    const SizedBox(height: 20),
+                    _section('Your budget'),
+                    _hint(
+                      'Vendors quote against this figure, so a realistic number '
+                      'gets you more useful bids.',
+                    ),
+                    _field(
+                      controller: _budget,
+                      label: 'Expected budget',
+                      hint: 'e.g. 1500000',
+                      prefixText: '₹ ',
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      validator: (v) {
+                        final value = int.tryParse((v ?? '').trim());
+                        if (value == null || value <= 0) {
+                          return 'Enter the budget you expect to spend.';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 20),
+                    _section('Timeline'),
+                    _dateTile(
+                      label: 'Preferred start date',
+                      value: _startDate,
+                      // Work cannot start before bidding has closed.
+                      onTap: () => _pickDate(
+                        current: _startDate,
+                        firstDate: _bidDeadline,
+                        onPicked: (d) => setState(() => _startDate = d),
+                      ),
+                      onClear: () => setState(() => _startDate = null),
+                    ),
+                    _field(
+                      controller: _duration,
+                      label: 'How long should it take? (days, optional)',
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    ),
+                    _dateTile(
+                      label: 'Last day for bids',
+                      value: _bidDeadline,
+                      // Bidding has to be over by the time work starts.
+                      onTap: () => _pickDate(
+                        current: _bidDeadline,
+                        lastDate: _startDate,
+                        onPicked: (d) => setState(() => _bidDeadline = d),
+                      ),
+                      onClear: () => setState(() => _bidDeadline = null),
+                    ),
+                    _hint(
+                      _startDate == null
+                          ? 'Leave the bid deadline empty to keep it open.'
+                          : 'Bidding has to close on or before your start date '
+                                '(${tenderDate(_startDate!.toIso8601String())}). '
+                                'Leave it empty to keep it open.',
+                    ),
+
+                    const SizedBox(height: 20),
+                    _section('Where is the site?'),
+                    _field(
+                      controller: _addressText,
+                      label: 'Address',
+                      maxLines: 2,
+                      validator: _required,
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _field(
+                            controller: _district,
+                            label: 'District',
+                            validator: _required,
+                          ),
                         ),
-                        ..._subcategories.map(
-                          (s) => DropdownMenuItem<int>(
-                            value: s['id'] as int,
-                            child: Text('${s['name']}'),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _field(controller: _state, label: 'State'),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _field(
+                            controller: _pincode,
+                            label: 'Pincode',
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _field(
+                            controller: _phone,
+                            label: 'Contact number',
+                            keyboardType: TextInputType.phone,
+                            validator: _required,
                           ),
                         ),
                       ],
-                      onChanged: (v) => setState(() => _subcategoryId = v),
                     ),
-                  _field(
-                    controller: _description,
-                    label: 'Description',
-                    hint: 'What the project involves',
-                    maxLines: 4,
-                    validator: _required,
-                  ),
-                  _field(
-                    controller: _requirements,
-                    label: 'Requirements (optional)',
-                    hint: 'Materials, finishes, anything specific',
-                    maxLines: 3,
-                  ),
-                  _field(
-                    controller: _area,
-                    label: 'Built-up area in sq ft (optional)',
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  ),
-
-                  const SizedBox(height: 20),
-                  _section('Your budget'),
-                  _hint(
-                    'Vendors quote against this figure, so a realistic number '
-                    'gets you more useful bids.',
-                  ),
-                  _field(
-                    controller: _budget,
-                    label: 'Expected budget',
-                    hint: 'e.g. 1500000',
-                    prefixText: '₹ ',
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    validator: (v) {
-                      final value = int.tryParse((v ?? '').trim());
-                      if (value == null || value <= 0) {
-                        return 'Enter the budget you expect to spend.';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-                  _section('Timeline'),
-                  _dateTile(
-                    label: 'Preferred start date',
-                    value: _startDate,
-                    // Work cannot start before bidding has closed.
-                    onTap: () => _pickDate(
-                      current: _startDate,
-                      firstDate: _bidDeadline,
-                      onPicked: (d) => setState(() => _startDate = d),
+                    _hint(
+                      'Your number is only shared with the vendor you finally '
+                      'choose.',
                     ),
-                    onClear: () => setState(() => _startDate = null),
-                  ),
-                  _field(
-                    controller: _duration,
-                    label: 'How long should it take? (days, optional)',
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  ),
-                  _dateTile(
-                    label: 'Last day for bids',
-                    value: _bidDeadline,
-                    // Bidding has to be over by the time work starts.
-                    onTap: () => _pickDate(
-                      current: _bidDeadline,
-                      lastDate: _startDate,
-                      onPicked: (d) => setState(() => _bidDeadline = d),
+
+                    const SizedBox(height: 20),
+                    _section('Drawings & photos'),
+                    _hint(
+                      'Plans or site photos help vendors quote accurately.',
                     ),
-                    onClear: () => setState(() => _bidDeadline = null),
-                  ),
-                  _hint(
-                    _startDate == null
-                        ? 'Leave the bid deadline empty to keep it open.'
-                        : 'Bidding has to close on or before your start date '
-                              '(${tenderDate(_startDate!.toIso8601String())}). '
-                              'Leave it empty to keep it open.',
-                  ),
-
-                  const SizedBox(height: 20),
-                  _section('Where is the site?'),
-                  _field(
-                    controller: _addressText,
-                    label: 'Address',
-                    maxLines: 2,
-                    validator: _required,
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _field(
-                          controller: _district,
-                          label: 'District',
-                          validator: _required,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _field(controller: _state, label: 'State'),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _field(
-                          controller: _pincode,
-                          label: 'Pincode',
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _field(
-                          controller: _phone,
-                          label: 'Contact number',
-                          keyboardType: TextInputType.phone,
-                          validator: _required,
-                        ),
-                      ),
-                    ],
-                  ),
-                  _hint(
-                    'Your number is only shared with the vendor you finally '
-                    'choose.',
-                  ),
-
-                  const SizedBox(height: 20),
-                  _section('Drawings & photos'),
-                  _hint(
-                    'Plans or site photos help vendors quote accurately.',
-                  ),
-                  _buildAttachments(),
-                ],
+                    _buildAttachments(),
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 
@@ -722,7 +728,9 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
             children: [
               Expanded(
                 child: Text(
-                  value == null ? 'Not set' : tenderDate(value.toIso8601String()),
+                  value == null
+                      ? 'Not set'
+                      : tenderDate(value.toIso8601String()),
                   style: TextStyle(
                     color: value == null
                         ? AppColors.textGrey

@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/cart_service.dart';
@@ -171,404 +172,418 @@ class _CartScreenState extends State<CartScreen> {
             ),
         ],
       ),
-      body: _cart.isEmpty
-          ? const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      body: DesktopCentered(
+        maxWidth: kDesktopFormWidth,
+        child: _cart.isEmpty
+            ? const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.shopping_cart_outlined,
+                      size: 64,
+                      color: AppColors.textGrey,
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      'Your cart is empty',
+                      style: TextStyle(color: AppColors.textGrey, fontSize: 16),
+                    ),
+                  ],
+                ),
+              )
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
                 children: [
-                  Icon(
-                    Icons.shopping_cart_outlined,
-                    size: 64,
-                    color: AppColors.textGrey,
-                  ),
-                  SizedBox(height: 12),
-                  Text(
-                    'Your cart is empty',
-                    style: TextStyle(color: AppColors.textGrey, fontSize: 16),
-                  ),
-                ],
-              ),
-            )
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
-              children: [
-                ...grouped.entries.map((entry) {
-                  final categoryName = entry.key;
-                  final items = entry.value;
-                  final categoryTotal = items.fold(
-                    0.0,
-                    (sum, i) => sum + i.total,
-                  );
+                  ...grouped.entries.map((entry) {
+                    final categoryName = entry.key;
+                    final items = entry.value;
+                    final categoryTotal = items.fold(
+                      0.0,
+                      (sum, i) => sum + i.total,
+                    );
 
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Category header
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                categoryName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Category header
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  categoryName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
                                 ),
                               ),
-                            ),
-                            Text(
-                              '₹${categoryTotal.toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                                fontSize: 14,
+                              Text(
+                                '₹${categoryTotal.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                  fontSize: 14,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
+                        const SizedBox(height: 8),
 
-                      // Items
-                      ...items.asMap().entries.map((itemEntry) {
-                        final itemIndex = _cart.items.indexOf(itemEntry.value);
-                        final item = itemEntry.value;
+                        // Items
+                        ...items.asMap().entries.map((itemEntry) {
+                          final itemIndex = _cart.items.indexOf(
+                            itemEntry.value,
+                          );
+                          final item = itemEntry.value;
 
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            item.name,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            '₹${item.price.toStringAsFixed(0)} × ${item.quantity} = ₹${item.total.toStringAsFixed(0)}',
-                                            style: const TextStyle(
-                                              color: AppColors.textGrey,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    // Quantity controls
-                                    if (item.formData != null)
-                                      // Form items — delete button only
-                                      GestureDetector(
-                                        onTap: () => _cart.removeAt(itemIndex),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            border: Border.all(
-                                              color: Colors.red.shade300,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            Icons.delete_outline,
-                                            color: Colors.red.shade400,
-                                            size: 18,
-                                          ),
-                                        ),
-                                      )
-                                    else
-                                      Container(
-                                        height: 34,
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                            color: AppColors.primary,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            GestureDetector(
-                                              onTap: () => _cart.removeItem(
-                                                item.serviceId,
-                                              ),
-                                              child: const Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: 10,
-                                                ),
-                                                child: Icon(
-                                                  Icons.remove,
-                                                  size: 18,
-                                                  color: AppColors.primary,
-                                                ),
-                                              ),
-                                            ),
                                             Text(
-                                              '${item.quantity}',
+                                              item.name,
                                               style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                color: AppColors.primary,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 14,
                                               ),
                                             ),
-                                            GestureDetector(
-                                              onTap: () => _cart.addItem(
-                                                serviceId: item.serviceId,
-                                                name: item.name,
-                                                price: item.price,
-                                              ),
-                                              child: const Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: 10,
-                                                ),
-                                                child: Icon(
-                                                  Icons.add,
-                                                  size: 18,
-                                                  color: AppColors.primary,
-                                                ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '₹${item.price.toStringAsFixed(0)} × ${item.quantity} = ₹${item.total.toStringAsFixed(0)}',
+                                              style: const TextStyle(
+                                                color: AppColors.textGrey,
+                                                fontSize: 13,
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
-                                  ],
-                                ),
-
-                                // Form summary
-                                if (item.formData != null &&
-                                    item.formSummary.isNotEmpty) ...[
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade50,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: Colors.grey.shade200,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            item.formSummary,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.textGrey,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
+                                      // Quantity controls
+                                      if (item.formData != null)
+                                        // Form items — delete button only
                                         GestureDetector(
                                           onTap: () =>
-                                              _editFormItem(itemIndex, item),
-                                          child: const Text(
-                                            'Edit',
-                                            style: TextStyle(
-                                              color: AppColors.primary,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 12,
+                                              _cart.removeAt(itemIndex),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              border: Border.all(
+                                                color: Colors.red.shade300,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Icon(
+                                              Icons.delete_outline,
+                                              color: Colors.red.shade400,
+                                              size: 18,
                                             ),
                                           ),
+                                        )
+                                      else
+                                        Container(
+                                          height: 34,
+                                          decoration: BoxDecoration(
+                                            border: Border.all(
+                                              color: AppColors.primary,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              GestureDetector(
+                                                onTap: () => _cart.removeItem(
+                                                  item.serviceId,
+                                                ),
+                                                child: const Padding(
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                  ),
+                                                  child: Icon(
+                                                    Icons.remove,
+                                                    size: 18,
+                                                    color: AppColors.primary,
+                                                  ),
+                                                ),
+                                              ),
+                                              Text(
+                                                '${item.quantity}',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.primary,
+                                                ),
+                                              ),
+                                              GestureDetector(
+                                                onTap: () => _cart.addItem(
+                                                  serviceId: item.serviceId,
+                                                  name: item.name,
+                                                  price: item.price,
+                                                ),
+                                                child: const Padding(
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                  ),
+                                                  child: Icon(
+                                                    Icons.add,
+                                                    size: 18,
+                                                    color: AppColors.primary,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ],
-                                    ),
+                                    ],
                                   ),
+
+                                  // Form summary
+                                  if (item.formData != null &&
+                                      item.formSummary.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade50,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.grey.shade200,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              item.formSummary,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.textGrey,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          GestureDetector(
+                                            onTap: () =>
+                                                _editFormItem(itemIndex, item),
+                                            child: const Text(
+                                              'Edit',
+                                              style: TextStyle(
+                                                color: AppColors.primary,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
-                          ),
-                        );
-                      }),
-                      const SizedBox(height: 16),
-                    ],
-                  );
-                }),
+                          );
+                        }),
+                        const SizedBox(height: 16),
+                      ],
+                    );
+                  }),
 
-                const Divider(height: 24),
-                // Coupon input
-                _CouponInput(
-                  onApply: _applyCoupon,
-                  appliedCode: _cart.couponCode,
-                  onRemove: () => _cart.clearCoupon(),
-                ),
-                const SizedBox(height: 16),
-
-                // Discount rows
-                if (_cart.autoDiscount > 0) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${_cart.autoDiscountName} discount',
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontSize: 14,
-                        ),
-                      ),
-                      Text(
-                        '-₹${_cart.autoDiscount.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                  const Divider(height: 24),
+                  // Coupon input
+                  _CouponInput(
+                    onApply: _applyCoupon,
+                    appliedCode: _cart.couponCode,
+                    onRemove: () => _cart.clearCoupon(),
                   ),
-                  const SizedBox(height: 6),
-                ],
+                  const SizedBox(height: 16),
 
-                if (_cart.couponDiscount > 0) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Coupon (${_cart.couponCode})',
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontSize: 14,
-                        ),
-                      ),
-                      Text(
-                        '-₹${_cart.couponDiscount.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                ],
-
-                // Total
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Total',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      '₹${_cart.finalAmount.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-
-                // The pro the customer picked on a service page or profile.
-                if (_cart.preferredVendorId != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.07),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
+                  // Discount rows
+                  if (_cart.autoDiscount > 0) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Icon(
-                          Icons.verified,
-                          size: 18,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Requested pro: ${_cart.preferredVendorName}',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textDark,
-                            ),
+                        Text(
+                          '${_cart.autoDiscountName} discount',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontSize: 14,
                           ),
                         ),
-                        GestureDetector(
-                          onTap: _cart.clearPreferredVendor,
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 4),
-                            child: Icon(
-                              Icons.close,
-                              size: 18,
-                              color: AppColors.textGrey,
-                            ),
+                        Text(
+                          '-₹${_cart.autoDiscount.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontSize: 14,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'We will pass your request on — the final vendor is confirmed '
-                    'by our team.',
-                    style: TextStyle(color: AppColors.textGrey, fontSize: 11),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                  ],
 
-                if (_cart.distinctCategories.length > 1) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    '${_cart.distinctCategories.length} categories — a separate booking will be created for each so the right vendor can be assigned.',
-                    style: const TextStyle(
-                      color: AppColors.textGrey,
-                      fontSize: 12,
+                  if (_cart.couponDiscount > 0) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Coupon (${_cart.couponCode})',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          '-₹${_cart.couponDiscount.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 6),
+                  ],
+
+                  // Total
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '₹${_cart.finalAmount.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ],
-            ),
-      bottomSheet: _cart.isEmpty
-          ? null
-          : Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
+
+                  // The pro the customer picked on a service page or profile.
+                  if (_cart.preferredVendorId != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.07),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.verified,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Requested pro: ${_cart.preferredVendorName}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: _cart.clearPreferredVendor,
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(
+                                Icons.close,
+                                size: 18,
+                                color: AppColors.textGrey,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'We will pass your request on — the final vendor is confirmed '
+                      'by our team.',
+                      style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+                    ),
+                  ],
+
+                  if (_cart.distinctCategories.length > 1) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '${_cart.distinctCategories.length} categories — a separate booking will be created for each so the right vendor can be assigned.',
+                      style: const TextStyle(
+                        color: AppColors.textGrey,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ],
               ),
-              child: SafeArea(
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _proceedToBooking,
-                    child: Text(
-                      'Proceed to Book • ₹${_cart.finalAmount.toStringAsFixed(0)}',
+      ),
+      // Null when the cart is empty, so the wrapper has to sit inside the
+      // branch that actually builds a bar.
+      bottomSheet: _cart.isEmpty
+          ? null
+          : DesktopCentered(
+              fillHeight: false,
+              maxWidth: kDesktopFormWidth,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _proceedToBooking,
+                      child: Text(
+                        'Proceed to Book • ₹${_cart.finalAmount.toStringAsFixed(0)}',
+                      ),
                     ),
                   ),
                 ),
@@ -798,110 +813,113 @@ class _MultiBookingScreenState extends State<_MultiBookingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Book Services')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          // Summary
-          Text(
-            '${widget.categories.length} bookings will be created',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'One booking per category so the right vendor can be assigned to each.',
-            style: TextStyle(color: AppColors.textGrey, fontSize: 13),
-          ),
-          const SizedBox(height: 8),
-          ...widget.categories.map((cat) {
-            final items = (cat['items'] as List<CartItem>);
-            final catTotal = items.fold(0.0, (sum, i) => sum + i.total);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text(
-                '• ${cat['categoryName']} — ₹${catTotal.toStringAsFixed(0)}',
-                style: const TextStyle(fontSize: 14),
+      body: DesktopCentered(
+        maxWidth: kDesktopFormWidth,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            // Summary
+            Text(
+              '${widget.categories.length} bookings will be created',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'One booking per category so the right vendor can be assigned to each.',
+              style: TextStyle(color: AppColors.textGrey, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            ...widget.categories.map((cat) {
+              final items = (cat['items'] as List<CartItem>);
+              final catTotal = items.fold(0.0, (sum, i) => sum + i.total);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  '• ${cat['categoryName']} — ₹${catTotal.toStringAsFixed(0)}',
+                  style: const TextStyle(fontSize: 14),
+                ),
+              );
+            }),
+            const SizedBox(height: 20),
+
+            // Date
+            ListTile(
+              tileColor: AppColors.cardBackground,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-            );
-          }),
-          const SizedBox(height: 20),
-
-          // Date
-          ListTile(
-            tileColor: AppColors.cardBackground,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              leading: const Icon(Icons.calendar_today),
+              title: Text(
+                _selectedDate == null
+                    ? 'Select Date'
+                    : _formatDate(_selectedDate!),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: _pickDate,
             ),
-            leading: const Icon(Icons.calendar_today),
-            title: Text(
-              _selectedDate == null
-                  ? 'Select Date'
-                  : _formatDate(_selectedDate!),
-            ),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: _pickDate,
-          ),
-          const SizedBox(height: 12),
-
-          // Time
-          ListTile(
-            tileColor: AppColors.cardBackground,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            leading: const Icon(Icons.access_time),
-            title: Text(
-              _selectedTime == null
-                  ? 'Select Time'
-                  : _selectedTime!.format(context),
-            ),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: _pickTime,
-          ),
-          const SizedBox(height: 20),
-
-          // Address
-          TextField(
-            controller: _addressController,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'Your Address',
-              hintText: 'Enter your address',
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Notes
-          TextField(
-            controller: _notesController,
-            maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: 'Describe the issue (optional)',
-              hintText: 'e.g. Kitchen tap has been leaking for 2 days',
-            ),
-          ),
-
-          if (_errorMessage != null) ...[
             const SizedBox(height: 12),
-            Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-          ],
 
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: _isSubmitting ? null : _submitAll,
-            child: _isSubmitting
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
+            // Time
+            ListTile(
+              tileColor: AppColors.cardBackground,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              leading: const Icon(Icons.access_time),
+              title: Text(
+                _selectedTime == null
+                    ? 'Select Time'
+                    : _selectedTime!.format(context),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: _pickTime,
+            ),
+            const SizedBox(height: 20),
+
+            // Address
+            TextField(
+              controller: _addressController,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Your Address',
+                hintText: 'Enter your address',
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Notes
+            TextField(
+              controller: _notesController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Describe the issue (optional)',
+                hintText: 'e.g. Kitchen tap has been leaking for 2 days',
+              ),
+            ),
+
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 12),
+              Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+            ],
+
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _isSubmitting ? null : _submitAll,
+              child: _isSubmitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      'Confirm ${widget.categories.length} Bookings • ₹${_cart.finalAmount.toStringAsFixed(0)}',
                     ),
-                  )
-                : Text(
-                    'Confirm ${widget.categories.length} Bookings • ₹${_cart.finalAmount.toStringAsFixed(0)}',
-                  ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

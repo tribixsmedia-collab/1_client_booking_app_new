@@ -56,11 +56,6 @@ class _CurationVideoScreenState extends State<CurationVideoScreen> {
     // Pause previous
     _controllers[_currentIndex]?.pause();
 
-
-
-
-    
-
     _currentIndex = index;
 
     // Init and play current

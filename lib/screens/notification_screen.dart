@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 
 import '../models/app_notification.dart';
@@ -239,10 +240,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             if (unread > 0) ...[
               const SizedBox(width: 10),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 3,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary,
                   borderRadius: BorderRadius.circular(20),
@@ -294,7 +292,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           child: _buildFilters(),
         ),
       ),
-      body: _buildBody(),
+      body: DesktopCentered(maxWidth: kDesktopFormWidth, child: _buildBody()),
     );
   }
 
@@ -610,8 +608,9 @@ class _NotificationCard extends StatelessWidget {
                                           decoration: BoxDecoration(
                                             color: theme.colorScheme.primary
                                                 .withValues(alpha: 0.12),
-                                            borderRadius:
-                                                BorderRadius.circular(20),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                           ),
                                           child: Text(
                                             'New',
@@ -685,10 +684,7 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(

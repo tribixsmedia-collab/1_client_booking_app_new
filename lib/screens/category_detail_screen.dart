@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import 'booking_screen.dart';
@@ -22,63 +23,65 @@ class CategoryDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(categoryName)),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(
-            'Choose a service',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Select the specific service you need under $categoryName.',
-            style: const TextStyle(color: AppColors.textGrey, fontSize: 13),
-          ),
-          const SizedBox(height: 20),
+      body: DesktopCentered(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Text(
+              'Choose a service',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Select the specific service you need under $categoryName.',
+              style: const TextStyle(color: AppColors.textGrey, fontSize: 13),
+            ),
+            const SizedBox(height: 20),
 
-          // "General" option — book without a subcategory
-          _ServiceTile(
-            name: '$categoryName (General)',
-            price: basePrice,
-            iconUrl: null,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => BookingScreen(
-                    categoryId: categoryId,
-                    categoryName: categoryName,
-                    basePrice: basePrice,
+            // "General" option — book without a subcategory
+            _ServiceTile(
+              name: '$categoryName (General)',
+              price: basePrice,
+              iconUrl: null,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => BookingScreen(
+                      categoryId: categoryId,
+                      categoryName: categoryName,
+                      basePrice: basePrice,
+                    ),
                   ),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+
+            // Subcategories from DB
+            ...subcategories.map((sub) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _ServiceTile(
+                  name: sub['name'],
+                  price: sub['base_price'],
+                  iconUrl: sub['icon'],
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => BookingScreen(
+                          categoryId: categoryId,
+                          categoryName: '${categoryName} - ${sub['name']}',
+                          basePrice: sub['base_price'],
+                          subcategoryId: sub['id'],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               );
-            },
-          ),
-          const SizedBox(height: 10),
-
-          // Subcategories from DB
-          ...subcategories.map((sub) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _ServiceTile(
-                name: sub['name'],
-                price: sub['base_price'],
-                iconUrl: sub['icon'],
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => BookingScreen(
-                        categoryId: categoryId,
-                        categoryName: '${categoryName} - ${sub['name']}',
-                        basePrice: sub['base_price'],
-                        subcategoryId: sub['id'],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            );
-          }),
-        ],
+            }),
+          ],
+        ),
       ),
     );
   }

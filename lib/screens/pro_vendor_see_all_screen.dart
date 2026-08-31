@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
@@ -79,27 +80,29 @@ class _ProVendorSeeAllScreenState extends State<ProVendorSeeAllScreen> {
           ],
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _items.isEmpty
-          ? const Center(
-              child: Text(
-                'No pro vendors here right now.',
-                style: TextStyle(color: AppColors.textGrey),
+      body: DesktopCentered(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _items.isEmpty
+            ? const Center(
+                child: Text(
+                  'No pro vendors here right now.',
+                  style: TextStyle(color: AppColors.textGrey),
+                ),
+              )
+            : ListView.separated(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                itemCount: _items.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final vendor = Map<String, dynamic>.from(_items[index]);
+                  return ProVendorListTile(
+                    vendor: vendor,
+                    onTap: () => _openVendor(vendor),
+                  );
+                },
               ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-              itemCount: _items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final vendor = Map<String, dynamic>.from(_items[index]);
-                return ProVendorListTile(
-                  vendor: vendor,
-                  onTap: () => _openVendor(vendor),
-                );
-              },
-            ),
+      ),
     );
   }
 }

@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/cart_service.dart';
@@ -152,292 +153,305 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
-      body: widget.services.isEmpty
-          ? const Center(child: Text('No services available yet.'))
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-              itemCount: widget.services.length,
-              itemBuilder: (context, index) {
-                final svc = widget.services[index];
-                final svcId = svc['id'] as int;
-                final name = svc['name'] as String;
-                final price = double.tryParse('${svc['price']}') ?? 0;
-                final desc = (svc['description'] as String?) ?? '';
-                final imageUrl = svc['image'] as String?;
-                final duration = svc['duration_minutes'] as int?;
-                final qty = _cart.getQuantity(svcId);
-                final hasForm = _formCache[svcId] != null;
+      body: DesktopCentered(
+        child: widget.services.isEmpty
+            ? const Center(child: Text('No services available yet.'))
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                itemCount: widget.services.length,
+                itemBuilder: (context, index) {
+                  final svc = widget.services[index];
+                  final svcId = svc['id'] as int;
+                  final name = svc['name'] as String;
+                  final price = double.tryParse('${svc['price']}') ?? 0;
+                  final desc = (svc['description'] as String?) ?? '';
+                  final imageUrl = svc['image'] as String?;
+                  final duration = svc['duration_minutes'] as int?;
+                  final qty = _cart.getQuantity(svcId);
+                  final hasForm = _formCache[svcId] != null;
 
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Info
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => ServiceDetailScreen(
-                                    serviceId: svcId,
-                                    name: name,
-                                    description: desc,
-                                    price: price,
-                                    durationMinutes: duration,
-                                    imageUrl: imageUrl,
-                                    categoryId: widget.categoryId,
-                                    subcategoryId: widget.subcategoryId,
-                                    categoryName: widget.title,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '₹${price.toStringAsFixed(0)}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                                if (duration != null) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '• $duration mins',
-                                    style: const TextStyle(
-                                      color: AppColors.textGrey,
-                                      fontSize: 12,
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Info
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => ServiceDetailScreen(
+                                      serviceId: svcId,
+                                      name: name,
+                                      description: desc,
+                                      price: price,
+                                      durationMinutes: duration,
+                                      imageUrl: imageUrl,
+                                      categoryId: widget.categoryId,
+                                      subcategoryId: widget.subcategoryId,
+                                      categoryName: widget.title,
                                     ),
                                   ),
-                                ],
-                                if (desc.isNotEmpty) ...[
-                                  const SizedBox(height: 6),
+                                );
+                              },
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   Text(
-                                    desc,
-                                    maxLines: 3,
-                                    overflow: TextOverflow.ellipsis,
+                                    name,
                                     style: const TextStyle(
-                                      color: AppColors.textGrey,
-                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
                                     ),
                                   ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        // Image + Add button
-                        Column(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Container(
-                                width: 90,
-                                height: 80,
-                                color: Colors.grey.shade100,
-                                child: imageUrl != null && imageUrl.isNotEmpty
-                                    ? Image.network(
-                                        imageUrl,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
-                                            const Icon(
-                                              Icons.image,
-                                              color: AppColors.textGrey,
-                                            ),
-                                      )
-                                    : const Icon(
-                                        Icons.image,
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '₹${price.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  if (duration != null) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '• $duration mins',
+                                      style: const TextStyle(
                                         color: AppColors.textGrey,
+                                        fontSize: 12,
                                       ),
+                                    ),
+                                  ],
+                                  if (desc.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      desc,
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: AppColors.textGrey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            // Add button — always shows "Add" for form services
-                            // (each add opens form for unique config)
-                            SizedBox(
-                              width: 90,
-                              height: 34,
-                              child: hasForm
-                                  ? OutlinedButton(
-                                      onPressed: () => _onAddTap(svc),
-                                      style: OutlinedButton.styleFrom(
-                                        padding: EdgeInsets.zero,
-                                        side: const BorderSide(
-                                          color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 12),
+                          // Image + Add button
+                          Column(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  width: 90,
+                                  height: 80,
+                                  color: Colors.grey.shade100,
+                                  child: imageUrl != null && imageUrl.isNotEmpty
+                                      ? Image.network(
+                                          imageUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              const Icon(
+                                                Icons.image,
+                                                color: AppColors.textGrey,
+                                              ),
+                                        )
+                                      : const Icon(
+                                          Icons.image,
+                                          color: AppColors.textGrey,
                                         ),
-                                        shape: RoundedRectangleBorder(
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              // Add button — always shows "Add" for form services
+                              // (each add opens form for unique config)
+                              SizedBox(
+                                width: 90,
+                                height: 34,
+                                child: hasForm
+                                    ? OutlinedButton(
+                                        onPressed: () => _onAddTap(svc),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          side: const BorderSide(
+                                            color: AppColors.primary,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            const Text(
+                                              'Add',
+                                              style: TextStyle(
+                                                color: AppColors.primary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            if (qty > 0) ...[
+                                              const SizedBox(width: 4),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 4,
+                                                      vertical: 1,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.primary,
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  '$qty',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      )
+                                    : qty == 0
+                                    ? OutlinedButton(
+                                        onPressed: () => _onAddTap(svc),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          side: const BorderSide(
+                                            color: AppColors.primary,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Add',
+                                          style: TextStyle(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      )
+                                    : Container(
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary,
                                           borderRadius: BorderRadius.circular(
                                             8,
                                           ),
                                         ),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          const Text(
-                                            'Add',
-                                            style: TextStyle(
-                                              color: AppColors.primary,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          if (qty > 0) ...[
-                                            const SizedBox(width: 4),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 4,
-                                                    vertical: 1,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.primary,
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          children: [
+                                            GestureDetector(
+                                              onTap: () =>
+                                                  _cart.removeItem(svcId),
+                                              child: const Icon(
+                                                Icons.remove,
+                                                color: Colors.white,
+                                                size: 18,
                                               ),
-                                              child: Text(
-                                                '$qty',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                                            ),
+                                            Text(
+                                              '$qty',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            GestureDetector(
+                                              onTap: () => _onAddTap(svc),
+                                              child: const Icon(
+                                                Icons.add,
+                                                color: Colors.white,
+                                                size: 18,
                                               ),
                                             ),
                                           ],
-                                        ],
-                                      ),
-                                    )
-                                  : qty == 0
-                                  ? OutlinedButton(
-                                      onPressed: () => _onAddTap(svc),
-                                      style: OutlinedButton.styleFrom(
-                                        padding: EdgeInsets.zero,
-                                        side: const BorderSide(
-                                          color: AppColors.primary,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
                                         ),
                                       ),
-                                      child: const Text(
-                                        'Add',
-                                        style: TextStyle(
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    )
-                                  : Container(
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primary,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceEvenly,
-                                        children: [
-                                          GestureDetector(
-                                            onTap: () =>
-                                                _cart.removeItem(svcId),
-                                            child: const Icon(
-                                              Icons.remove,
-                                              color: Colors.white,
-                                              size: 18,
-                                            ),
-                                          ),
-                                          Text(
-                                            '$qty',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          GestureDetector(
-                                            onTap: () => _onAddTap(svc),
-                                            child: const Icon(
-                                              Icons.add,
-                                              color: Colors.white,
-                                              size: 18,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                            ),
-                          ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+      ),
+      // Bottom cart bar
+      // Null when the cart is empty, so the wrapper has to sit inside the
+      // branch that actually builds a bar.
+      bottomSheet: _cart.isEmpty
+          ? null
+          : DesktopCentered(
+              fillHeight: false,
+              maxWidth: kDesktopContentWidth,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const CartScreen()),
+                      );
+                    },
+                    child: Row(
+                      children: [
+                        Text(
+                          '${_cart.totalItems} item${_cart.totalItems > 1 ? 's' : ''} | ₹${_cart.totalAmount.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const Spacer(),
+                        const Text(
+                          'View Cart',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.white,
+                          size: 14,
                         ),
                       ],
                     ),
-                  ),
-                );
-              },
-            ),
-      // Bottom cart bar
-      bottomSheet: _cart.isEmpty
-          ? null
-          : Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const CartScreen()),
-                    );
-                  },
-                  child: Row(
-                    children: [
-                      Text(
-                        '${_cart.totalItems} item${_cart.totalItems > 1 ? 's' : ''} | ₹${_cart.totalAmount.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const Spacer(),
-                      const Text(
-                        'View Cart',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.white,
-                        size: 14,
-                      ),
-                    ],
                   ),
                 ),
               ),

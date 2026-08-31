@@ -57,8 +57,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) =>
-            destination
+        pageBuilder: (_, __, ___) => destination
             ? const MainNavigationScreen()
             : const PhoneEntryScreen(),
         transitionsBuilder: (_, animation, __, child) {
@@ -105,7 +104,10 @@ class _SplashScreenState extends State<SplashScreen>
                       const SizedBox(height: 8),
                       Text(
                         BrandingService.tagline ?? 'Services at your doorstep',
-                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
                   ),

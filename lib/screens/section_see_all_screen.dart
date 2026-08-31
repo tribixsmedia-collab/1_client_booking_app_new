@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/cart_service.dart';
@@ -155,254 +156,296 @@ class _SectionSeeAllScreenState extends State<SectionSeeAllScreen> {
           ],
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _items.isEmpty
-          ? const Center(child: Text('No services available'))
-          : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.62,
-              ),
-              itemCount: _items.length,
-              itemBuilder: (context, index) {
-                final item = _items[index];
-                final serviceId = item['service_id'] as int;
-                final name = item['name'] as String;
-                final price = double.tryParse('${item['price']}') ?? 0;
-                final imageUrl = item['image'] as String?;
-                final rating =
-                    (item['average_rating'] as num?)?.toDouble() ?? 0;
-                final totalReviews = item['total_reviews'] as int? ?? 0;
-                final discountInfo =
-                    item['discount_info'] as Map<String, dynamic>?;
-                final finalPrice = discountInfo != null
-                    ? double.tryParse('${discountInfo['final_price']}')
-                    : null;
-                final qty = _cart.getQuantity(serviceId);
-
-                return GestureDetector(
-                  onTap: () => _openDetail(Map<String, dynamic>.from(item)),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+      body: DesktopCentered(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _items.isEmpty
+            ? const Center(child: Text('No services available'))
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  // Two across on a phone, as before. Across the desktop
+                  // content column those same two would be 610px wide and,
+                  // at a 0.62 ratio, nearly 1000px tall - one card per
+                  // screenful. Measuring the column rather than the window
+                  // keeps the count right inside DesktopCentered.
+                  final available = constraints.maxWidth - 32;
+                  final columns = available < 600
+                      ? 2
+                      : (available / 210).floor().clamp(2, 6);
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.62,
+                      // The card is a fixed 120px image plus two short text
+                      // rows and a Spacer, so its natural height hardly moves
+                      // with width. A ratio that suits a 165px phone card
+                      // just inflates the Spacer on a wider one, so pin the
+                      // height instead. Null here leaves the ratio in charge,
+                      // which is what phones keep doing.
+                      mainAxisExtent: columns == 2 ? null : 270,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Image
-                        ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(12),
+                    itemCount: _items.length,
+                    itemBuilder: (context, index) {
+                      final item = _items[index];
+                      final serviceId = item['service_id'] as int;
+                      final name = item['name'] as String;
+                      final price = double.tryParse('${item['price']}') ?? 0;
+                      final imageUrl = item['image'] as String?;
+                      final rating =
+                          (item['average_rating'] as num?)?.toDouble() ?? 0;
+                      final totalReviews = item['total_reviews'] as int? ?? 0;
+                      final discountInfo =
+                          item['discount_info'] as Map<String, dynamic>?;
+                      final finalPrice = discountInfo != null
+                          ? double.tryParse('${discountInfo['final_price']}')
+                          : null;
+                      final qty = _cart.getQuantity(serviceId);
+
+                      return GestureDetector(
+                        onTap: () =>
+                            _openDetail(Map<String, dynamic>.from(item)),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          child: Container(
-                            height: 120,
-                            width: double.infinity,
-                            color: Colors.grey.shade100,
-                            child: imageUrl != null && imageUrl.isNotEmpty
-                                ? Image.network(
-                                    imageUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Center(
-                                      child: Icon(
-                                        Icons.image,
-                                        color: AppColors.textGrey,
-                                        size: 32,
-                                      ),
-                                    ),
-                                  )
-                                : const Center(
-                                    child: Icon(
-                                      Icons.image,
-                                      color: AppColors.textGrey,
-                                      size: 32,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                        // Info
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                name,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
+                              // Image
+                              ClipRRect(
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(12),
+                                ),
+                                child: Container(
+                                  height: 120,
+                                  width: double.infinity,
+                                  color: Colors.grey.shade100,
+                                  child: imageUrl != null && imageUrl.isNotEmpty
+                                      ? Image.network(
+                                          imageUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              const Center(
+                                                child: Icon(
+                                                  Icons.image,
+                                                  color: AppColors.textGrey,
+                                                  size: 32,
+                                                ),
+                                              ),
+                                        )
+                                      : const Center(
+                                          child: Icon(
+                                            Icons.image,
+                                            color: AppColors.textGrey,
+                                            size: 32,
+                                          ),
+                                        ),
                                 ),
                               ),
-                              if (rating > 0) ...[
-                                const SizedBox(height: 4),
-                                Row(
+                              // Info
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  10,
+                                  8,
+                                  10,
+                                  0,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Icon(
-                                      Icons.star,
-                                      color: Colors.amber,
-                                      size: 13,
-                                    ),
-                                    const SizedBox(width: 3),
                                     Text(
-                                      rating.toStringAsFixed(1),
+                                      name,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
                                       ),
                                     ),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      '($totalReviews)',
-                                      style: const TextStyle(
-                                        color: AppColors.textGrey,
-                                        fontSize: 10,
+                                    if (rating > 0) ...[
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.star,
+                                            color: Colors.amber,
+                                            size: 13,
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            rating.toStringAsFixed(1),
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            '($totalReviews)',
+                                            style: const TextStyle(
+                                              color: AppColors.textGrey,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
+                                    ],
                                   ],
                                 ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        const Spacer(),
-                        // Price + Add
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: finalPrice != null && finalPrice < price
-                                    ? Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            '₹${finalPrice.toStringAsFixed(0)}',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                          Text(
-                                            '₹${price.toStringAsFixed(0)}',
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: AppColors.textGrey,
-                                              decoration:
-                                                  TextDecoration.lineThrough,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : Text(
-                                        '₹${price.toStringAsFixed(0)}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
                               ),
-                              qty == 0
-                                  ? SizedBox(
-                                      height: 28,
-                                      child: OutlinedButton(
-                                        onPressed: () => _onAddTap(
-                                          Map<String, dynamic>.from(item),
-                                        ),
-                                        style: OutlinedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                          ),
-                                          side: const BorderSide(
-                                            color: AppColors.primary,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'Add',
-                                          style: TextStyle(
-                                            color: AppColors.primary,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  : Container(
-                                      height: 28,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primary,
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          GestureDetector(
-                                            onTap: () =>
-                                                _cart.removeItem(serviceId),
-                                            child: const Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                              ),
-                                              child: Icon(
-                                                Icons.remove,
-                                                color: Colors.white,
-                                                size: 14,
+                              const Spacer(),
+                              // Price + Add
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  10,
+                                  4,
+                                  10,
+                                  10,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child:
+                                          finalPrice != null &&
+                                              finalPrice < price
+                                          ? Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  '₹${finalPrice.toStringAsFixed(0)}',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  '₹${price.toStringAsFixed(0)}',
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: AppColors.textGrey,
+                                                    decoration: TextDecoration
+                                                        .lineThrough,
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                          : Text(
+                                              '₹${price.toStringAsFixed(0)}',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
                                               ),
                                             ),
-                                          ),
-                                          Text(
-                                            '$qty',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                          GestureDetector(
-                                            onTap: () => _onAddTap(
-                                              Map<String, dynamic>.from(item),
-                                            ),
-                                            child: const Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                              ),
-                                              child: Icon(
-                                                Icons.add,
-                                                color: Colors.white,
-                                                size: 14,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
                                     ),
+                                    qty == 0
+                                        ? SizedBox(
+                                            height: 28,
+                                            child: OutlinedButton(
+                                              onPressed: () => _onAddTap(
+                                                Map<String, dynamic>.from(item),
+                                              ),
+                                              style: OutlinedButton.styleFrom(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                    ),
+                                                side: const BorderSide(
+                                                  color: AppColors.primary,
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                              ),
+                                              child: const Text(
+                                                'Add',
+                                                style: TextStyle(
+                                                  color: AppColors.primary,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                        : Container(
+                                            height: 28,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primary,
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                GestureDetector(
+                                                  onTap: () => _cart.removeItem(
+                                                    serviceId,
+                                                  ),
+                                                  child: const Padding(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          horizontal: 6,
+                                                        ),
+                                                    child: Icon(
+                                                      Icons.remove,
+                                                      color: Colors.white,
+                                                      size: 14,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Text(
+                                                  '$qty',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                GestureDetector(
+                                                  onTap: () => _onAddTap(
+                                                    Map<String, dynamic>.from(
+                                                      item,
+                                                    ),
+                                                  ),
+                                                  child: const Padding(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          horizontal: 6,
+                                                        ),
+                                                    child: Icon(
+                                                      Icons.add,
+                                                      color: Colors.white,
+                                                      size: 14,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                      );
+                    },
+                  );
+                },
+              ),
+      ),
     );
   }
 }

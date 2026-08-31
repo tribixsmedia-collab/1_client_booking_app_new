@@ -9,9 +9,15 @@ import 'package:flutter/widgets.dart';
 /// so the installed Android and iOS apps are untouched.
 const double kDesktopBreakpoint = 900;
 
-/// Content column width on desktop. Wider than this and lines of service
-/// cards start drifting apart from the heading above them.
+/// Content column width on desktop for browse and detail pages - grids,
+/// lists, cards. Wider than this and rows start drifting apart from the
+/// heading above them.
 const double kDesktopContentWidth = 1240;
+
+/// Narrower column for pages that are mostly a single stack of fields or
+/// prose - booking, profile, reviews, support. A form stretched across 1240px
+/// is hard to scan even though a grid of cards at that width is not.
+const double kDesktopFormWidth = 760;
 
 bool isDesktopLayout(BuildContext context) =>
     kIsWeb && MediaQuery.sizeOf(context).width >= kDesktopBreakpoint;
@@ -23,15 +29,26 @@ class DesktopCentered extends StatelessWidget {
     super.key,
     required this.child,
     this.maxWidth = kDesktopContentWidth,
+    this.fillHeight = true,
   });
 
   final Widget child;
   final double maxWidth;
 
+  /// Whether to take all the height on offer.
+  ///
+  /// True for a Scaffold body, which should cover the page. False for a
+  /// bottomNavigationBar or bottom action bar: those are handed *loose*
+  /// height constraints, so a widget that expands into them swallows the
+  /// whole page and leaves the body with nothing.
+  final bool fillHeight;
+
   @override
   Widget build(BuildContext context) {
     if (!isDesktopLayout(context)) return child;
-    return Center(
+    return Align(
+      alignment: Alignment.center,
+      heightFactor: fillHeight ? null : 1,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: child,

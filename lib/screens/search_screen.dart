@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/cart_service.dart';
@@ -207,11 +208,13 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _query.isEmpty
-          ? _buildRecentOrSuggestions()
-          : _buildResults(),
+      body: DesktopCentered(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _query.isEmpty
+            ? _buildRecentOrSuggestions()
+            : _buildResults(),
+      ),
     );
   }
 

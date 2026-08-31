@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
@@ -184,420 +185,427 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
     final progress = (_currentStep + 1) / _steps.length;
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Progress bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: Row(
-                children: [
-                  Text(
-                    'STEP ${_currentStep + 1} OF ${_steps.length}',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${(progress * 100).toInt()}%',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: Colors.grey.shade200,
-                  color: AppColors.primary,
-                  minHeight: 4,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Category header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+      body: DesktopCentered(
+        maxWidth: kDesktopFormWidth,
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Progress bar
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                 child: Row(
                   children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryDark,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Center(
-                        child: Text(
-                          widget.categoryName.isNotEmpty
-                              ? widget.categoryName[0].toUpperCase()
-                              : 'S',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
+                    Text(
+                      'STEP ${_currentStep + 1} OF ${_steps.length}',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'CATEGORY',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: AppColors.textGrey,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          widget.categoryName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ],
+                    const Spacer(),
+                    Text(
+                      '${(progress * 100).toInt()}%',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // Question
-            Expanded(
-              child: ListView(
+              const SizedBox(height: 8),
+              Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: [
-                  Text(
-                    step['title'],
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    backgroundColor: Colors.grey.shade200,
+                    color: AppColors.primary,
+                    minHeight: 4,
                   ),
-                  if ((step['description'] as String?)?.isNotEmpty ??
-                      false) ...[
-                    const SizedBox(height: 4),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Category header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryDark,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Text(
+                            widget.categoryName.isNotEmpty
+                                ? widget.categoryName[0].toUpperCase()
+                                : 'S',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'CATEGORY',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppColors.textGrey,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            widget.categoryName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Question
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  children: [
                     Text(
-                      step['description'],
+                      step['title'],
                       style: const TextStyle(
-                        color: AppColors.textGrey,
-                        fontSize: 13,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 20),
+                    if ((step['description'] as String?)?.isNotEmpty ??
+                        false) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        step['description'],
+                        style: const TextStyle(
+                          color: AppColors.textGrey,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
 
-                  // Field based on type
-                  if (fieldType == 'single_select')
-                    ...options.map((opt) {
-                      final label = opt['label'] as String;
-                      final isSelected = _answers[stepId] == label;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: GestureDetector(
-                          onTap: () => _selectSingle(stepId, label),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              border: Border.all(
+                    // Field based on type
+                    if (fieldType == 'single_select')
+                      ...options.map((opt) {
+                        final label = opt['label'] as String;
+                        final isSelected = _answers[stepId] == label;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: GestureDetector(
+                            onTap: () => _selectSingle(stepId, label),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : Colors.grey.shade300,
+                                  width: isSelected ? 2 : 1,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
                                 color: isSelected
-                                    ? AppColors.primary
-                                    : Colors.grey.shade300,
-                                width: isSelected ? 2 : 1,
+                                    ? AppColors.primary.withValues(alpha: 0.05)
+                                    : null,
                               ),
-                              borderRadius: BorderRadius.circular(12),
-                              color: isSelected
-                                  ? AppColors.primary.withValues(alpha: 0.05)
-                                  : null,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    label,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                      color: isSelected
-                                          ? AppColors.primary
-                                          : Colors.black,
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      label,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                        color: isSelected
+                                            ? AppColors.primary
+                                            : Colors.black,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                if (isSelected)
-                                  const Icon(
-                                    Icons.check_circle,
-                                    color: AppColors.primary,
-                                    size: 22,
-                                  )
-                                else
-                                  Icon(
-                                    Icons.circle_outlined,
-                                    color: Colors.grey.shade400,
-                                    size: 22,
-                                  ),
-                              ],
+                                  if (isSelected)
+                                    const Icon(
+                                      Icons.check_circle,
+                                      color: AppColors.primary,
+                                      size: 22,
+                                    )
+                                  else
+                                    Icon(
+                                      Icons.circle_outlined,
+                                      color: Colors.grey.shade400,
+                                      size: 22,
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    }),
+                        );
+                      }),
 
-                  if (fieldType == 'multi_select')
-                    ...options.map((opt) {
-                      final label = opt['label'] as String;
-                      final selected =
-                          (_answers[stepId] as List?)?.contains(label) ?? false;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: GestureDetector(
-                          onTap: () => _toggleMulti(stepId, label),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              border: Border.all(
+                    if (fieldType == 'multi_select')
+                      ...options.map((opt) {
+                        final label = opt['label'] as String;
+                        final selected =
+                            (_answers[stepId] as List?)?.contains(label) ??
+                            false;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: GestureDetector(
+                            onTap: () => _toggleMulti(stepId, label),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: selected
+                                      ? AppColors.primary
+                                      : Colors.grey.shade300,
+                                  width: selected ? 2 : 1,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
                                 color: selected
-                                    ? AppColors.primary
-                                    : Colors.grey.shade300,
-                                width: selected ? 2 : 1,
+                                    ? AppColors.primary.withValues(alpha: 0.05)
+                                    : null,
                               ),
-                              borderRadius: BorderRadius.circular(12),
-                              color: selected
-                                  ? AppColors.primary.withValues(alpha: 0.05)
-                                  : null,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    label,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: selected
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                      color: selected
-                                          ? AppColors.primary
-                                          : Colors.black,
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      label,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: selected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                        color: selected
+                                            ? AppColors.primary
+                                            : Colors.black,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                if (selected)
-                                  const Icon(
-                                    Icons.check_box,
-                                    color: AppColors.primary,
-                                    size: 22,
-                                  )
-                                else
-                                  Icon(
-                                    Icons.check_box_outline_blank,
-                                    color: Colors.grey.shade400,
-                                    size: 22,
-                                  ),
-                              ],
+                                  if (selected)
+                                    const Icon(
+                                      Icons.check_box,
+                                      color: AppColors.primary,
+                                      size: 22,
+                                    )
+                                  else
+                                    Icon(
+                                      Icons.check_box_outline_blank,
+                                      color: Colors.grey.shade400,
+                                      size: 22,
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    }),
+                        );
+                      }),
 
-                  if (fieldType == 'text')
-                    TextField(
-                      onChanged: (v) => setState(() => _answers[stepId] = v),
-                      decoration: InputDecoration(
-                        hintText: 'Type your answer...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    if (fieldType == 'text')
+                      TextField(
+                        onChanged: (v) => setState(() => _answers[stepId] = v),
+                        decoration: InputDecoration(
+                          hintText: 'Type your answer...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        maxLines: 3,
+                      ),
+
+                    if (fieldType == 'number')
+                      TextField(
+                        onChanged: (v) => setState(() => _answers[stepId] = v),
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: 'Enter a number...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
-                      maxLines: 3,
-                    ),
 
-                  if (fieldType == 'number')
-                    TextField(
-                      onChanged: (v) => setState(() => _answers[stepId] = v),
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        hintText: 'Enter a number...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-
-                  // Custom option input
-                  if (allowCustom &&
-                      (fieldType == 'single_select' ||
-                          fieldType == 'multi_select')) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _customController,
-                            decoration: InputDecoration(
-                              hintText: 'Type custom option...',
-                              border: OutlineInputBorder(
+                    // Custom option input
+                    if (allowCustom &&
+                        (fieldType == 'single_select' ||
+                            fieldType == 'multi_select')) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _customController,
+                              decoration: InputDecoration(
+                                hintText: 'Type custom option...',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => _addCustomOption(stepId, fieldType),
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () => _addCustomOption(stepId, fieldType),
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.check, color: Colors.white),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () => _customController.clear(),
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.close),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-
-                  if (_errorMessage != null) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // Bottom buttons
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                child: Row(
-                  children: [
-                    if (_currentStep > 0)
-                      OutlinedButton.icon(
-                        onPressed: _previousStep,
-                        icon: const Icon(Icons.chevron_left, size: 18),
-                        label: const Text('Back'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      )
-                    else
-                      OutlinedButton.icon(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.chevron_left, size: 18),
-                        label: const Text('Back'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    const Spacer(),
-                    ElevatedButton.icon(
-                      onPressed: _isSubmitting ? null : _nextStep,
-                      icon: _isSubmitting
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
+                              child: const Icon(
+                                Icons.check,
                                 color: Colors.white,
                               ),
-                            )
-                          : null,
-                      label: Text(_isLastStep ? 'Submit' : 'Continue'),
-                      iconAlignment: _isLastStep
-                          ? IconAlignment.start
-                          : IconAlignment.end,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => _customController.clear(),
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade300,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.close),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                    ],
+
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ],
                   ],
                 ),
               ),
-            ),
-          ],
+
+              // Bottom buttons
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  child: Row(
+                    children: [
+                      if (_currentStep > 0)
+                        OutlinedButton.icon(
+                          onPressed: _previousStep,
+                          icon: const Icon(Icons.chevron_left, size: 18),
+                          label: const Text('Back'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        )
+                      else
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.chevron_left, size: 18),
+                          label: const Text('Back'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      const Spacer(),
+                      ElevatedButton.icon(
+                        onPressed: _isSubmitting ? null : _nextStep,
+                        icon: _isSubmitting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : null,
+                        label: Text(_isLastStep ? 'Submit' : 'Continue'),
+                        iconAlignment: _isLastStep
+                            ? IconAlignment.start
+                            : IconAlignment.end,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

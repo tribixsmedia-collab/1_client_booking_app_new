@@ -1,3 +1,4 @@
+import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -162,7 +163,9 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
                     IconButton(
                       onPressed: () => setDialogState(() => rating = i),
                       icon: Icon(
-                        i <= rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                        i <= rating
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
                         color: Colors.amber.shade600,
                         size: 32,
                       ),
@@ -280,11 +283,14 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
             onPressed: () => Navigator.of(context).pop(_changed),
           ),
         ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _errorMessage != null
-            ? _errorState()
-            : RefreshIndicator(onRefresh: _load, child: _content()),
+        body: DesktopCentered(
+          maxWidth: kDesktopFormWidth,
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _errorMessage != null
+              ? _errorState()
+              : RefreshIndicator(onRefresh: _load, child: _content()),
+        ),
       ),
     );
   }
@@ -409,7 +415,10 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
                 _row('Area', '${tender['area_sqft']} sq ft'),
               _row('Your budget', tenderMoney(tender['expected_budget'])),
               if (tender['preferred_start_date'] != null)
-                _row('Preferred start', tenderDate(tender['preferred_start_date'])),
+                _row(
+                  'Preferred start',
+                  tenderDate(tender['preferred_start_date']),
+                ),
               if (tender['duration_days'] != null)
                 _row('Expected duration', '${tender['duration_days']} days'),
               if (tender['bid_deadline'] != null)
@@ -662,10 +671,7 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
               style: TextStyle(fontSize: 12, color: AppColors.textGrey),
             ),
             const SizedBox(height: 4),
-            Text(
-              '${bid['work_plan']}',
-              style: const TextStyle(fontSize: 13.5),
-            ),
+            Text('${bid['work_plan']}', style: const TextStyle(fontSize: 13.5)),
           ],
         ],
       ),
