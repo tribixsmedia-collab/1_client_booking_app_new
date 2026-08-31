@@ -15,8 +15,18 @@ import '../utils/tender_format.dart';
 /// Saving creates a DRAFT and uploads the attachments, then the customer
 /// chooses whether to publish. Splitting it that way means a failed upload
 /// never costs them the whole form.
+///
+/// The same screen edits an existing tender. That matters most when an admin
+/// has sent one back: the customer has to be able to act on the reason before
+/// publishing again, and re-submitting an unchanged tender would just be
+/// rejected a second time.
 class CreateTenderScreen extends StatefulWidget {
-  const CreateTenderScreen({super.key});
+  /// The tender being edited, as returned by the detail endpoint. Null when
+  /// posting a new one. Only DRAFT and REJECTED tenders may be passed here —
+  /// the server refuses to change any other status.
+  final Map<String, dynamic>? tender;
+
+  const CreateTenderScreen({super.key, this.tender});
 
   @override
   State<CreateTenderScreen> createState() => _CreateTenderScreenState();
@@ -60,11 +70,25 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
     'OTHER': 'Other',
   };
 
+  bool get _isEditing => widget.tender != null;
+
+  /// True when the admin sent this one back, which changes what the buttons
+  /// should say — "publish again" rather than "publish".
+  bool get _wasSentBack => widget.tender?['status'] == 'REJECTED';
+
+  /// Attachments already on the server. Removing one deletes it immediately;
+  /// the new files in [_attachments] are only uploaded on save.
+  List<dynamic> _existingAttachments = [];
+
   @override
   void initState() {
     super.initState();
     _loadCategories();
-    _prefillFromProfile();
+    if (_isEditing) {
+      _prefillFromTender();
+    } else {
+      _prefillFromProfile();
+    }
   }
 
   @override
@@ -102,6 +126,40 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
         _loadingCategories = false;
       });
     }
+  }
+
+  /// Fill the form from the tender being edited, so the customer changes the
+  /// one thing the admin asked about rather than retyping the whole brief.
+  void _prefillFromTender() {
+    final tender = widget.tender!;
+
+    _title.text = '${tender['title'] ?? ''}';
+    _description.text = '${tender['description'] ?? ''}';
+    _requirements.text = '${tender['requirements'] ?? ''}';
+    _area.text = tender['area_sqft'] == null ? '' : '${tender['area_sqft']}';
+    _budget.text = _wholeNumber(tender['expected_budget']);
+    _duration.text = tender['duration_days'] == null
+        ? ''
+        : '${tender['duration_days']}';
+    _addressText.text = '${tender['address_text'] ?? ''}';
+    _state.text = '${tender['address_state'] ?? ''}';
+    _district.text = '${tender['address_district'] ?? ''}';
+    _pincode.text = '${tender['address_pincode'] ?? ''}';
+    _phone.text = '${tender['contact_phone'] ?? ''}';
+
+    _projectType = '${tender['project_type'] ?? 'HOUSE'}';
+    _categoryId = tender['category'] as int?;
+    _subcategoryId = tender['subcategory'] as int?;
+    _startDate = DateTime.tryParse('${tender['preferred_start_date'] ?? ''}');
+    _bidDeadline = DateTime.tryParse('${tender['bid_deadline'] ?? ''}');
+    _existingAttachments = List<dynamic>.from(tender['attachments'] ?? const []);
+  }
+
+  /// '1500000.00' -> '1500000', so the field does not show trailing zeros the
+  /// customer then has to delete.
+  String _wholeNumber(dynamic value) {
+    final parsed = double.tryParse('${value ?? ''}');
+    return parsed == null ? '' : parsed.truncate().toString();
   }
 
   /// The site is usually the customer's own address, so start from their
@@ -211,26 +269,52 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
 
     setState(() => _isSaving = true);
     try {
-      final tender = await ApiService.createTender(
-        title: _title.text.trim(),
-        projectType: _projectType,
-        categoryId: _categoryId!,
-        subcategoryId: _subcategoryId,
-        description: _description.text.trim(),
-        requirements: _requirements.text.trim(),
-        areaSqft: int.tryParse(_area.text.trim()),
-        expectedBudget: _budget.text.trim(),
-        preferredStartDate: _startDate == null ? null : _iso(_startDate!),
-        durationDays: int.tryParse(_duration.text.trim()),
-        bidDeadline: _bidDeadline == null ? null : _iso(_bidDeadline!),
-        addressText: _addressText.text.trim(),
-        addressState: _state.text.trim(),
-        addressDistrict: _district.text.trim(),
-        addressPincode: _pincode.text.trim(),
-        contactPhone: _phone.text.trim(),
-      );
+      final int tenderId;
 
-      final tenderId = tender['id'] as int;
+      if (_isEditing) {
+        tenderId = widget.tender!['id'] as int;
+        // Nulls are sent deliberately: clearing a date or the area has to
+        // reach the server, and a partial PATCH would silently keep the old
+        // value instead.
+        await ApiService.updateTender(tenderId, {
+          'title': _title.text.trim(),
+          'project_type': _projectType,
+          'category': _categoryId,
+          'subcategory': _subcategoryId,
+          'description': _description.text.trim(),
+          'requirements': _requirements.text.trim(),
+          'area_sqft': int.tryParse(_area.text.trim()),
+          'expected_budget': _budget.text.trim(),
+          'preferred_start_date': _startDate == null ? null : _iso(_startDate!),
+          'duration_days': int.tryParse(_duration.text.trim()),
+          'bid_deadline': _bidDeadline == null ? null : _iso(_bidDeadline!),
+          'address_text': _addressText.text.trim(),
+          'address_state': _state.text.trim(),
+          'address_district': _district.text.trim(),
+          'address_pincode': _pincode.text.trim(),
+          'contact_phone': _phone.text.trim(),
+        });
+      } else {
+        final tender = await ApiService.createTender(
+          title: _title.text.trim(),
+          projectType: _projectType,
+          categoryId: _categoryId!,
+          subcategoryId: _subcategoryId,
+          description: _description.text.trim(),
+          requirements: _requirements.text.trim(),
+          areaSqft: int.tryParse(_area.text.trim()),
+          expectedBudget: _budget.text.trim(),
+          preferredStartDate: _startDate == null ? null : _iso(_startDate!),
+          durationDays: int.tryParse(_duration.text.trim()),
+          bidDeadline: _bidDeadline == null ? null : _iso(_bidDeadline!),
+          addressText: _addressText.text.trim(),
+          addressState: _state.text.trim(),
+          addressDistrict: _district.text.trim(),
+          addressPincode: _pincode.text.trim(),
+          contactPhone: _phone.text.trim(),
+        );
+        tenderId = tender['id'] as int;
+      }
 
       // Uploaded one at a time so a single bad file does not lose the rest.
       final failed = <String>[];
@@ -250,9 +334,16 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
       if (!mounted) return;
       Navigator.of(context).pop(true);
 
-      final message = publish
-          ? 'Tender sent for review. We will publish it to vendors shortly.'
-          : 'Draft saved. Publish it when you are ready.';
+      final String message;
+      if (publish) {
+        message = _wasSentBack
+            ? 'Sent back for review. We will publish it to vendors shortly.'
+            : 'Tender sent for review. We will publish it to vendors shortly.';
+      } else {
+        message = _isEditing
+            ? 'Changes saved. Publish it when you are ready.'
+            : 'Draft saved. Publish it when you are ready.';
+      }
       _snack(
         failed.isEmpty
             ? message
@@ -284,7 +375,9 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Post a tender')),
+      appBar: AppBar(
+        title: Text(_isEditing ? 'Edit tender' : 'Post a tender'),
+      ),
       bottomNavigationBar: DesktopCentered(
         fillHeight: false,
         maxWidth: kDesktopFormWidth,
@@ -332,6 +425,9 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   children: [
+                    // The reason has to be visible while they fix it —
+                    // it lives on the detail screen they just came from.
+                    if (_wasSentBack) _buildSentBackNotice(),
                     _section('What do you need built?'),
                     _field(
                       controller: _title,
@@ -533,10 +629,144 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
     );
   }
 
+  /// Why the admin sent it back, shown above the form so the customer can
+  /// read it while making the change rather than remembering it.
+  Widget _buildSentBackNotice() {
+    final reason = '${widget.tender?['rejection_reason'] ?? ''}'.trim();
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 18,
+                color: Colors.orange.shade800,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Our team asked for a change',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.orange.shade900,
+                ),
+              ),
+            ],
+          ),
+          if (reason.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              reason,
+              style: const TextStyle(fontSize: 13.5, color: AppColors.textDark),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            'Make the change, then send it back for review.',
+            style: TextStyle(fontSize: 12.5, color: Colors.orange.shade900),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Removes an attachment already on the server. Immediate, unlike the new
+  /// files below it — there is nothing to undo it against once it is gone.
+  Future<void> _removeExistingAttachment(dynamic attachment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove this file?'),
+        content: const Text('It will be deleted from your tender.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep it'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+            ),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await ApiService.deleteTenderAttachment(attachment['id']);
+      if (!mounted) return;
+      setState(() => _existingAttachments.remove(attachment));
+    } catch (e) {
+      if (!mounted) return;
+      _snack(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
   Widget _buildAttachments() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (_existingAttachments.isNotEmpty) ...[
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (final attachment in _existingAttachments)
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: attachment['is_image'] == true
+                          ? Image.network(
+                              '${attachment['file']}',
+                              width: 92,
+                              height: 92,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) =>
+                                  _existingFileTile(attachment),
+                            )
+                          : _existingFileTile(attachment),
+                    ),
+                    Positioned(
+                      top: 2,
+                      right: 2,
+                      child: GestureDetector(
+                        onTap: _isSaving
+                            ? null
+                            : () => _removeExistingAttachment(attachment),
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            size: 15,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+        ],
         if (_attachments.isNotEmpty)
           Wrap(
             spacing: 10,
@@ -615,7 +845,7 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Save draft'),
+                child: Text(_isEditing ? 'Save only' : 'Save draft'),
               ),
             ),
             const SizedBox(width: 12),
@@ -632,7 +862,13 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('Publish tender'),
+                    : Text(
+                        _wasSentBack
+                            ? 'Save & send again'
+                            : _isEditing
+                            ? 'Save & publish'
+                            : 'Publish tender',
+                      ),
               ),
             ),
           ],
@@ -640,6 +876,29 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
       ),
     );
   }
+
+  /// Stand-in for an attachment that is not an image, or whose thumbnail
+  /// could not be fetched.
+  Widget _existingFileTile(dynamic attachment) => Container(
+    width: 92,
+    height: 92,
+    color: AppColors.background,
+    padding: const EdgeInsets.all(6),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.insert_drive_file_outlined, color: AppColors.textGrey),
+        const SizedBox(height: 4),
+        Text(
+          '${attachment['filename'] ?? 'File'}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 9.5, color: AppColors.textGrey),
+        ),
+      ],
+    ),
+  );
 
   // ---------------------------------------------------------------- widgets
   String? _required(String? value) =>

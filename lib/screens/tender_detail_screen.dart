@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
 import '../utils/tender_format.dart';
+import 'create_tender_screen.dart';
 import 'tender_bids_screen.dart';
 
 /// One tender, from draft through to the review — whatever stage it is at,
@@ -96,6 +97,21 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
       () => ApiService.cancelTender(widget.tenderId, reason: reason),
       'Tender cancelled.',
     );
+  }
+
+  /// Opens the form on this tender. Only reachable while it is a draft or has
+  /// been sent back — the server refuses to change it in any other state.
+  Future<void> _edit() async {
+    final tender = _tender;
+    if (tender == null) return;
+
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => CreateTenderScreen(tender: tender)),
+    );
+    if (saved == true) {
+      _changed = true;
+      _load();
+    }
   }
 
   Future<void> _openBids() async {
@@ -466,13 +482,40 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
     final buttons = <Widget>[];
 
     if (status == 'DRAFT' || status == 'REJECTED') {
-      buttons.add(
-        _bigButton(
-          icon: Icons.campaign_rounded,
-          label: status == 'REJECTED' ? 'Publish again' : 'Publish tender',
-          onPressed: _publish,
-        ),
-      );
+      // Sent back means something has to change before it goes out again, so
+      // editing leads and re-publishing unchanged is the secondary option.
+      // On a draft the customer is usually ready to publish, so that leads.
+      if (status == 'REJECTED') {
+        buttons.add(
+          _bigButton(
+            icon: Icons.edit_outlined,
+            label: 'Edit and send again',
+            onPressed: _edit,
+          ),
+        );
+        buttons.add(
+          TextButton.icon(
+            onPressed: _isBusy ? null : _publish,
+            icon: const Icon(Icons.campaign_rounded, size: 18),
+            label: const Text('Send again without changes'),
+          ),
+        );
+      } else {
+        buttons.add(
+          _bigButton(
+            icon: Icons.campaign_rounded,
+            label: 'Publish tender',
+            onPressed: _publish,
+          ),
+        );
+        buttons.add(
+          TextButton.icon(
+            onPressed: _isBusy ? null : _edit,
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Edit this tender'),
+          ),
+        );
+      }
     }
 
     if (status == 'OPEN') {
