@@ -16,7 +16,7 @@ dependencies:
   geolocator: ^14.0.2
   video_player: ^2.11.1
   visibility_detector: ^0.4.0+2
-  flutter_native_splash: ^2.4.4
+  # flutter_native_splash: ^2.4.4
   cupertino_icons: ^1.0.8
   http: ^1.6.0
   image_picker: ^1.2.3
@@ -45,12 +45,12 @@ flutter:
     - assets/logo.png
 
 # This MUST be at root level, NOT inside flutter:
-flutter_native_splash:
-  color: "#FFFFFF"
-  image: assets/logo.png
+# flutter_native_splash:
+#   color: "#FFFFFF"
+#   image: assets/logo.png
   # The web build has no splash - the browser's own loading state is enough,
   # and a generated one shows a second full-screen logo before the app paints.
-  web: false
-  android_12:
-    color: "#FFFFFF"
-    image: assets/logo.png
+  # web: false
+  # android_12:
+  #   color: "#FFFFFF"
+  #   image: assets/logo.png

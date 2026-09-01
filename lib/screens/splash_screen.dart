@@ -90,7 +90,7 @@ class _SplashScreenState extends State<SplashScreen>
                   builder: (context) => Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const AppLogo(size: 300),
+                      const AppLogo(size: 180),
                       const SizedBox(height: 24),
                       Text(
                         BrandingService.appName ?? 'Home Service',
