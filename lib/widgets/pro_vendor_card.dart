@@ -115,6 +115,8 @@ class ProVendorCard extends StatelessWidget {
     final reviews = (vendor['total_reviews'] as int?) ?? 0;
     final years = (vendor['experience_years'] as int?) ?? 0;
     final categories = (vendor['categories'] as List<dynamic>?) ?? [];
+    final location = (vendor['location_label'] as String?) ?? '';
+    final isPro = vendor['is_pro'] != false;
 
     return GestureDetector(
       onTap: onTap,
@@ -135,8 +137,10 @@ class ProVendorCard extends StatelessWidget {
               size: 64,
             ),
             const SizedBox(height: 8),
-            const ProBadge(),
-            const SizedBox(height: 6),
+            if (isPro) ...[
+              const ProBadge(),
+              const SizedBox(height: 6),
+            ],
 
             Text(
               name,
@@ -168,6 +172,11 @@ class ProVendorCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 11, color: AppColors.textGrey),
               ),
+            ],
+
+            if (location.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              _LocationLine(location: location, fontSize: 10),
             ],
 
             const SizedBox(height: 8),
@@ -216,14 +225,17 @@ class ProVendorCard extends StatelessWidget {
 /// there is room for the tagline and a "Book" action.
 class ProVendorListTile extends StatelessWidget {
   final Map<String, dynamic> vendor;
-  final VoidCallback onTap;
+
+  /// Null leaves the tile inert — a vendor who was never put on show has no
+  /// profile page to open.
+  final VoidCallback? onTap;
   final VoidCallback? onBook;
   final bool isSelected;
 
   const ProVendorListTile({
     super.key,
     required this.vendor,
-    required this.onTap,
+    this.onTap,
     this.onBook,
     this.isSelected = false,
   });
@@ -236,6 +248,12 @@ class ProVendorListTile extends StatelessWidget {
     final rating = ((vendor['average_rating'] as num?) ?? 0).toDouble();
     final reviews = (vendor['total_reviews'] as int?) ?? 0;
     final years = (vendor['experience_years'] as int?) ?? 0;
+    // Where this vendor is. It only earns a line when the server sent one,
+    // which it does for every vendor offered from outside the customer's own
+    // state — the whole point of offering them is that the customer can see
+    // how far away they are.
+    final location = (vendor['location_label'] as String?) ?? '';
+    final isPro = vendor['is_pro'] != false;
 
     return GestureDetector(
       onTap: onTap,
@@ -277,8 +295,10 @@ class ProVendorListTile extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      const ProBadge(fontSize: 9),
+                      if (isPro) ...[
+                        const SizedBox(width: 6),
+                        const ProBadge(fontSize: 9),
+                      ],
                     ],
                   ),
 
@@ -306,6 +326,11 @@ class ProVendorListTile extends StatelessWidget {
                         height: 1.3,
                       ),
                     ),
+                  ],
+
+                  if (location.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    _LocationLine(location: location),
                   ],
 
                   const SizedBox(height: 6),
@@ -369,6 +394,38 @@ class ProVendorListTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+/// "Ernakulam, Kerala" under a vendor's name, pin and all.
+class _LocationLine extends StatelessWidget {
+  final String location;
+  final double fontSize;
+
+  const _LocationLine({required this.location, this.fontSize = 11});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.location_on_outlined,
+          size: fontSize + 2,
+          color: AppColors.textGrey,
+        ),
+        const SizedBox(width: 2),
+        Flexible(
+          child: Text(
+            location,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: fontSize, color: AppColors.textGrey),
+          ),
+        ),
+      ],
     );
   }
 }

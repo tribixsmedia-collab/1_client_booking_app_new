@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Nothing. Android 12's splash screen insists on an icon; this is how you say
+"draw no icon" without the OS substituting the launcher one in its place.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/transparent"/>
+</shape>

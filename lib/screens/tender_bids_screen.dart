@@ -2,6 +2,7 @@ import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../services/payment_service.dart';
 import '../theme.dart';
 import '../utils/tender_format.dart';
 
@@ -11,10 +12,15 @@ class TenderBidsScreen extends StatefulWidget {
   final int tenderId;
   final dynamic expectedBudget;
 
+  /// What the platform charges to confirm a choice, as a percentage of the
+  /// bid. Shown before they pick, so the fee is never a surprise afterwards.
+  final dynamic confirmationFeePercent;
+
   const TenderBidsScreen({
     super.key,
     required this.tenderId,
     this.expectedBudget,
+    this.confirmationFeePercent,
   });
 
   @override
@@ -27,6 +33,7 @@ class _TenderBidsScreenState extends State<TenderBidsScreen> {
   bool _isAwarding = false;
   String? _errorMessage;
   String _sort = 'amount';
+  final _payer = PaymentService();
 
   static const _sorts = {
     'amount': 'Lowest price',
@@ -38,6 +45,12 @@ class _TenderBidsScreenState extends State<TenderBidsScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _payer.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -61,16 +74,36 @@ class _TenderBidsScreenState extends State<TenderBidsScreen> {
     }
   }
 
+  /// The fee this bid would cost to confirm, worked out from the rate the
+  /// server sent. Only ever a preview — the amount actually charged is the
+  /// one the server puts on the fee when the bid is chosen.
+  double? _feeOn(dynamic amount) {
+    final percent = double.tryParse('${widget.confirmationFeePercent ?? ''}');
+    final value = double.tryParse('${amount ?? ''}');
+    if (percent == null || value == null || percent <= 0) return null;
+    return value * percent / 100;
+  }
+
   Future<void> _accept(Map<String, dynamic> bid) async {
+    final fee = _feeOn(bid['amount']);
+    final percent = widget.confirmationFeePercent;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Choose ${bid['vendor_name']}?'),
         content: Text(
-          'They will take on this project for '
-          '${tenderMoney(bid['amount'])}.\n\n'
-          'Every other bid is turned down at the same time, and this cannot '
-          'be undone.',
+          fee == null
+              ? 'They will take on this project for '
+                    '${tenderMoney(bid['amount'])}.\n\n'
+                    'Every other bid is turned down at the same time, and this '
+                    'cannot be undone.'
+              : 'They will take on this project for '
+                    '${tenderMoney(bid['amount'])}.\n\n'
+                    'To confirm them you pay a ${_percentLabel(percent)}% '
+                    'confirmation fee of ${tenderMoneyExact(fee)} to Make My '
+                    'House. Your choice is held until that is paid — nothing is '
+                    'awarded and no other bid is turned down before then.',
         ),
         actions: [
           TextButton(
@@ -79,7 +112,7 @@ class _TenderBidsScreenState extends State<TenderBidsScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirm'),
+            child: Text(fee == null ? 'Confirm' : 'Choose & pay'),
           ),
         ],
       ),
@@ -87,20 +120,68 @@ class _TenderBidsScreenState extends State<TenderBidsScreen> {
     if (confirmed != true) return;
 
     setState(() => _isAwarding = true);
+    Map<String, dynamic> result;
     try {
-      await ApiService.acceptTenderBid(bid['id']);
-      if (!mounted) return;
-      Navigator.of(context).pop(true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${bid['vendor_name']} has the job.')),
-      );
+      result = await ApiService.acceptTenderBid(bid['id']);
     } catch (e) {
       if (!mounted) return;
       setState(() => _isAwarding = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
+      return;
     }
+
+    if (!mounted) return;
+
+    // No fee to pay: the server has awarded it already, exactly as before.
+    if (result['fee'] == null) {
+      Navigator.of(context).pop(true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${bid['vendor_name']} has the job.')),
+      );
+      return;
+    }
+
+    final outcome = await _payer.payTenderConfirmationFee(
+      tenderId: widget.tenderId,
+      description: 'Confirming ${bid['vendor_name']}',
+    );
+    if (!mounted) return;
+    setState(() => _isAwarding = false);
+
+    if (outcome.isSuccess) {
+      Navigator.of(context).pop(true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${bid['vendor_name']} has the job.')),
+      );
+      return;
+    }
+
+    // The choice is held either way, so send them back to the tender where
+    // the Pay button is waiting rather than leaving them on a list whose
+    // buttons no longer do anything.
+    Navigator.of(context).pop(true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          outcome.needsConfirmation
+              ? outcome.message
+              : '${outcome.message} ${bid['vendor_name']} is still held for '
+                    'you — pay the confirmation fee to lock them in.',
+        ),
+        duration: const Duration(seconds: 6),
+      ),
+    );
+  }
+
+  /// 10, not 10.00 — the trailing zeros read like precision that isn't there.
+  String _percentLabel(dynamic percent) {
+    final value = double.tryParse('${percent ?? ''}');
+    if (value == null) return '$percent';
+    return value == value.roundToDouble()
+        ? value.toStringAsFixed(0)
+        : value.toString();
   }
 
   @override

@@ -1,13 +1,40 @@
 import 'package:flutter/foundation.dart';
 
+/// A quantity the way a line shows it: no trailing ".0" on a whole number,
+/// two places when there really is a fraction. Quantities are doubles now
+/// because a measured line carries 1000 sq ft or 2.5 kg.
+String formatQuantity(double quantity) => quantity == quantity.roundToDouble()
+    ? quantity.toStringAsFixed(0)
+    : quantity.toStringAsFixed(2);
+
+
 class CartItem {
   final int serviceId;
   final String name;
+
+  /// A rate, not a total. What it is a rate *of* is [pricingType] — a flat
+  /// price, or one square foot, or one hour.
   final double price;
   final int categoryId;
   final int? subcategoryId;
   final String categoryName;
-  int quantity;
+
+  /// How many, or how much. A count for the things that are counted, a
+  /// measurement for the things that are measured — 1000 sq ft, 2.5 kg —
+  /// which is why it is not an int.
+  double quantity;
+
+  /// Enough of the service's pricing to render and total this line without
+  /// asking the server again.
+  final String pricingType;
+
+  /// "sq ft", "hour", or empty for a flat price.
+  final String unitLabel;
+
+  /// Whether [quantity] is a measurement the customer typed rather than a
+  /// count they stepped up and down.
+  final bool needsQuantity;
+
   int? formId;
   List<Map<String, dynamic>>? formData;
 
@@ -19,11 +46,21 @@ class CartItem {
     this.subcategoryId,
     required this.categoryName,
     this.quantity = 1,
+    this.pricingType = 'FIXED',
+    this.unitLabel = '',
+    this.needsQuantity = false,
     this.formId,
     this.formData,
   });
 
   double get total => price * quantity;
+
+  /// The quantity as a line shows it: "1000 sq ft", "2.5 kg", "3".
+  /// Trailing zeros are dropped so a whole number never reads as "3.0".
+  String get quantityLabel {
+    final amount = formatQuantity(quantity);
+    return unitLabel.isEmpty ? amount : '$amount $unitLabel';
+  }
 
   String get formSummary {
     if (formData == null || formData!.isEmpty) return '';
@@ -37,7 +74,11 @@ class CartItem {
     'id': serviceId,
     'name': name,
     'price': price,
+    // Sent as a number, not an int: the server multiplies it as a Decimal, so
+    // 1000 sq ft and 2.5 kg both survive the round trip.
     'qty': quantity,
+    'pricing_type': pricingType,
+    if (unitLabel.isNotEmpty) 'unit': unitLabel,
     if (formId != null) 'form_id': formId,
     if (formData != null) 'form_data': formData,
   };
@@ -124,7 +165,17 @@ class CartService extends ChangeNotifier {
           _preferredVendorCategoryIds.contains(categoryId));
 
   List<CartItem> get items => List.unmodifiable(_items);
-  int get totalItems => _items.fold(0, (sum, item) => sum + item.quantity);
+
+  /// How many things are in the cart, for the "N items | ₹X" bar.
+  ///
+  /// A measured line counts as one thing however much of it was ordered —
+  /// 1000 sq ft of tiling is one item on the bill, not a thousand. Counted
+  /// lines still add up the way they always did.
+  int get totalItems => _items.fold(
+    0,
+    (sum, item) => sum + (item.needsQuantity ? 1 : item.quantity.round()),
+  );
+
   double get totalAmount => _items.fold(0, (sum, item) => sum + item.total);
   bool get isEmpty => _items.isEmpty;
 
@@ -143,6 +194,10 @@ class CartService extends ChangeNotifier {
     required int serviceId,
     required String name,
     required double price,
+    double quantity = 1,
+    String pricingType = 'FIXED',
+    String unitLabel = '',
+    bool needsQuantity = false,
     int? formId,
     List<Map<String, dynamic>>? formData,
   }) {
@@ -156,6 +211,10 @@ class CartService extends ChangeNotifier {
           categoryId: _currentCategoryId!,
           subcategoryId: _currentSubcategoryId,
           categoryName: _currentCategoryName,
+          quantity: quantity,
+          pricingType: pricingType,
+          unitLabel: unitLabel,
+          needsQuantity: needsQuantity,
           formId: formId,
           formData: formData,
         ),
@@ -166,7 +225,14 @@ class CartService extends ChangeNotifier {
           .where((i) => i.serviceId == serviceId && i.formData == null)
           .toList();
       if (existing.isNotEmpty) {
-        existing.first.quantity++;
+        // A measured line is replaced, not stepped up: adding 1000 sq ft
+        // twice means the customer corrected the figure, not that they want
+        // 2000. Counted lines still increment.
+        if (needsQuantity) {
+          existing.first.quantity = quantity;
+        } else {
+          existing.first.quantity += quantity;
+        }
       } else {
         _items.add(
           CartItem(
@@ -176,6 +242,10 @@ class CartService extends ChangeNotifier {
             categoryId: _currentCategoryId!,
             subcategoryId: _currentSubcategoryId,
             categoryName: _currentCategoryName,
+            quantity: quantity,
+            pricingType: pricingType,
+            unitLabel: unitLabel,
+            needsQuantity: needsQuantity,
           ),
         );
       }
@@ -183,10 +253,12 @@ class CartService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Steps a counted line down by one, or drops a measured line outright —
+  /// there is no sense in taking one square foot off a thousand.
   void removeItem(int serviceId, {int? itemIndex}) {
     if (itemIndex != null && itemIndex < _items.length) {
       final item = _items[itemIndex];
-      if (item.quantity > 1) {
+      if (!item.needsQuantity && item.quantity > 1) {
         item.quantity--;
       } else {
         _items.removeAt(itemIndex);
@@ -196,7 +268,7 @@ class CartService extends ChangeNotifier {
           .where((i) => i.serviceId == serviceId && i.formData == null)
           .toList();
       if (existing.isNotEmpty) {
-        if (existing.first.quantity > 1) {
+        if (!existing.first.needsQuantity && existing.first.quantity > 1) {
           existing.first.quantity--;
         } else {
           _items.removeWhere(
@@ -222,10 +294,26 @@ class CartService extends ChangeNotifier {
     }
   }
 
-  int getQuantity(int serviceId) {
+  double getQuantity(int serviceId) {
     return _items
         .where((i) => i.serviceId == serviceId)
-        .fold(0, (sum, i) => sum + i.quantity);
+        .fold(0.0, (sum, i) => sum + i.quantity);
+  }
+
+  /// Sets a measured line to exactly [quantity], dropping it at zero.
+  /// What the number box on a per-sq-ft service writes to.
+  void setQuantity(int serviceId, double quantity) {
+    final existing = _items
+        .where((i) => i.serviceId == serviceId && i.formData == null)
+        .toList();
+    if (existing.isEmpty) return;
+
+    if (quantity <= 0) {
+      _items.remove(existing.first);
+    } else {
+      existing.first.quantity = quantity;
+    }
+    notifyListeners();
   }
 
   Map<String, List<CartItem>> get groupedByCategory {

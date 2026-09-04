@@ -1,3 +1,4 @@
+import '../models/service_pricing.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../services/cart_service.dart';
@@ -230,7 +231,9 @@ class _ServiceInfoCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '₹${price.toStringAsFixed(0)}',
+                  // The label, not the bare number: a curated quote service
+                  // has no price to show, and a per-unit one needs its unit.
+                  ServicePricing.fromJson(item, price).priceLabel,
                   style: const TextStyle(color: Colors.white, fontSize: 14),
                 ),
                 const SizedBox(height: 2),
@@ -252,6 +255,7 @@ class _ServiceInfoCard extends StatelessWidget {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => ServiceDetailScreen(
+                    pricing: ServicePricing.fromJson(item, price),
                     serviceId: item['service_id'],
                     name: item['service_name'] ?? '',
                     description: item['service_description'] ?? '',

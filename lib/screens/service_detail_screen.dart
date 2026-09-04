@@ -8,6 +8,9 @@ import '../widgets/pro_vendor_card.dart';
 import 'pro_vendor_detail_screen.dart';
 import 'service_form_screen.dart';
 import '../utils/profile_gate.dart';
+import '../utils/zone_gate.dart';
+import '../models/service_pricing.dart';
+import 'create_tender_screen.dart';
 import 'cart_screen.dart';
 
 class ServiceDetailScreen extends StatefulWidget {
@@ -21,6 +24,10 @@ class ServiceDetailScreen extends StatefulWidget {
   final int? subcategoryId;
   final String categoryName;
 
+  /// How [price] becomes an amount. Defaults to a flat price, so a caller
+  /// that has not been taught about pricing types behaves as it always did.
+  final ServicePricing? pricing;
+
   const ServiceDetailScreen({
     super.key,
     required this.serviceId,
@@ -32,6 +39,7 @@ class ServiceDetailScreen extends StatefulWidget {
     required this.categoryId,
     this.subcategoryId,
     required this.categoryName,
+    this.pricing,
   });
 
   @override
@@ -40,12 +48,29 @@ class ServiceDetailScreen extends StatefulWidget {
 
 class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   final _cart = CartService();
+
+  ServicePricing get _pricing =>
+      widget.pricing ?? ServicePricing.fixed(widget.price);
+
+  /// What the customer typed into the measured-quantity box — hours, square
+  /// feet, kilos. Only used for the pricing types that ask for one.
+  final _quantityController = TextEditingController(text: '1');
+
+  double get _measuredQuantity =>
+      double.tryParse(_quantityController.text.trim()) ?? 0;
   Map<String, dynamic>? _reviewData;
   bool _isLoadingReviews = true;
   Map<String, dynamic>? _discountInfo;
   double _discountedPrice = 0;
   List<dynamic> _proVendors = [];
   bool _isLoadingPros = true;
+
+  // Whether this service can actually be had where the customer lives.
+  // Null until the answer lands, and null forever for a guest we cannot
+  // place — which lets the booking through rather than blocking it.
+  Map<String, String>? _customerArea;
+  Map<String, dynamic>? _zone;
+  bool _isCheckingZone = true;
 
   @override
   void initState() {
@@ -58,15 +83,58 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
     _cart.addListener(_onCartChanged);
     _loadReviews();
     _loadDiscount();
-    _loadProVendors();
+    _loadZone();
     // Feeds the "Recently viewed" row on the home page.
     ApiService.recordServiceView(widget.serviceId);
   }
 
-  /// Pros who cover this service's category, so the customer can ask for a
-  /// particular one while booking it.
+  /// Asks whether anyone works this service in the customer's own state, and
+  /// loads the pros with that state in hand so the row only offers vendors
+  /// who could actually turn up.
+  ///
+  /// Safe to call again: signing in at the booking gate is exactly when a
+  /// customer we could not place becomes one we can.
+  Future<void> _loadZone() async {
+    final area = await ApiService.getMyArea();
+    final zone = await ApiService.getServiceAvailability(
+      serviceId: widget.serviceId,
+      state: area?['state'],
+      district: area?['district'],
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _customerArea = area;
+      _zone = zone;
+      _isCheckingZone = false;
+    });
+
+    await _loadProVendors();
+  }
+
+  /// True only when we know where the customer is and know nobody covers it.
+  /// A failed call, a guest, a profile with no state — none of those block a
+  /// booking.
+  bool get _zoneBlocked => _zone?['available'] == false;
+
+  /// The vendors offered instead when nobody covers the customer's state.
+  List<dynamic> get _vendorsElsewhere =>
+      (_zone?['vendors_elsewhere'] as List<dynamic>?) ?? [];
+
+  /// Re-checks the zone if we never knew where the customer was, then says
+  /// whether the booking may go on.
+  Future<bool> _zoneAllowsBooking() async {
+    if (_customerArea == null) await _loadZone();
+    return !_zoneBlocked;
+  }
+
+  /// Pros who cover this service, in the customer's state when we know it.
   Future<void> _loadProVendors() async {
-    final vendors = await ApiService.getProVendors(serviceId: widget.serviceId);
+    final vendors = await ApiService.getProVendors(
+      serviceId: widget.serviceId,
+      state: _customerArea?['state'],
+      district: _customerArea?['district'],
+    );
     if (mounted) {
       setState(() {
         _proVendors = vendors;
@@ -93,6 +161,22 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
     _cart.setPreferredVendor(vendorId, name, categoryIds: [widget.categoryId]);
     _showSnack('$name will be requested for this booking.');
   }
+
+  void _showZoneBlockedDialog() {
+    showZoneBlockedDialog(
+      context,
+      zone: _zone ?? const {},
+      serviceName: widget.name,
+    );
+  }
+
+  /// Where the customer is, as the server spells it.
+  String _zoneStateName() => zoneStateName(_zone);
+
+  /// Puts the unit back on a figure we formatted ourselves, so a discounted
+  /// rate still reads as "₹12 / sq ft" rather than a bare "₹12".
+  String _withUnit(String money) =>
+      _pricing.unitLabel.isEmpty ? money : '$money / ${_pricing.unitLabel}';
 
   void _showSnack(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -151,6 +235,13 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
     // Profile-completion gate
     if (!await checkProfileComplete(context)) return;
 
+    // Zone gate. It runs after the profile gate on purpose: a guest has no
+    // state until they sign in, and the state is what this question is about.
+    if (!await _zoneAllowsBooking()) {
+      if (mounted) _showZoneBlockedDialog();
+      return;
+    }
+
     // Check for form
     try {
       List<dynamic> forms = await ApiService.getFormByService(
@@ -184,6 +275,10 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
           serviceId: widget.serviceId,
           name: widget.name,
           price: widget.price,
+          quantity: _orderQuantity,
+          pricingType: _pricing.type,
+          unitLabel: _pricing.unitLabel,
+          needsQuantity: _pricing.needsQuantity,
           formId: forms.first['id'],
           formData: result,
         );
@@ -196,13 +291,380 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
       serviceId: widget.serviceId,
       name: widget.name,
       price: widget.price,
+      quantity: _orderQuantity,
+      pricingType: _pricing.type,
+      unitLabel: _pricing.unitLabel,
+      needsQuantity: _pricing.needsQuantity,
     );
   }
+
+  /// How much is being ordered: what the customer measured for a per-unit
+  /// service, or one more of a counted one.
+  double get _orderQuantity =>
+      _pricing.needsQuantity ? _measuredQuantity : 1;
 
   @override
   void dispose() {
     _cart.removeListener(_onCartChanged);
+    _quantityController.dispose();
     super.dispose();
+  }
+
+  /// A quote-only service cannot be added to a cart — there is no price to
+  /// add. It goes to the tender flow instead, where the customer posts the
+  /// job and vendors bid on it.
+  Future<void> _onRequestQuoteTap() async {
+    if (!await checkProfileComplete(context)) return;
+    if (!await _zoneAllowsBooking()) {
+      if (mounted) _showZoneBlockedDialog();
+      return;
+    }
+    if (!mounted) return;
+
+    // The form opens on this service: its category and subcategory are the
+    // type of work, and the project type is whatever the admin set on it.
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CreateTenderScreen(
+          seed: QuoteSeed(
+            categoryId: widget.categoryId,
+            subcategoryId: widget.subcategoryId,
+            projectType: _pricing.tenderProjectType,
+            serviceName: widget.name,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The box that takes the order.
+  ///
+  /// Three shapes, decided by the pricing type: a quote request when there is
+  /// no price to charge, a number box when the price is a rate that has to be
+  /// multiplied by something the customer measures, and the familiar +/-
+  /// stepper when it is simply counted.
+  Widget _buildBookingBox(double qty) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: _pricing.isQuoteOnly
+          ? _buildQuoteRequest()
+          : _pricing.needsQuantity
+          ? _buildMeasuredOrder()
+          : _buildCountedOrder(qty),
+    );
+  }
+
+  /// No price to add to a cart — the customer posts the job and vendors bid.
+  Widget _buildQuoteRequest() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'This service is priced after a look',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Post what you need and vendors will send you their quotes. You '
+          'choose the one you want.',
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.textGrey,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: ElevatedButton.icon(
+            onPressed: _onRequestQuoteTap,
+            icon: const Icon(Icons.request_quote_outlined, size: 18),
+            label: const Text('Request a quote'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// A rate times something the customer measures: hours, square feet, kilos.
+  Widget _buildMeasuredOrder() {
+    final quantity = _measuredQuantity;
+    final total = widget.price * quantity;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _pricing.measureLabel,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            SizedBox(
+              width: 140,
+              child: TextField(
+                controller: _quantityController,
+                keyboardType: TextInputType.numberWithOptions(
+                  decimal: _pricing.allowsDecimal,
+                ),
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                  suffixText: _pricing.unitLabel,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                quantity > 0
+                    ? '= ₹${total.toStringAsFixed(0)}'
+                    : 'Enter ${_pricing.measureLabel.toLowerCase()}',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: quantity > 0 ? AppColors.primary : AppColors.textGrey,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: OutlinedButton(
+            onPressed: quantity > 0 ? _onAddTap : null,
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: AppColors.primary),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              _cart.getQuantity(widget.serviceId) > 0
+                  ? 'Update'
+                  : 'Add',
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// The familiar stepper, for a price that is simply counted.
+  Widget _buildCountedOrder(double qty) {
+    return Row(
+      children: [
+        const Expanded(
+          child: Text(
+            'per unit',
+            style: TextStyle(color: AppColors.textGrey, fontSize: 12),
+          ),
+        ),
+        qty == 0
+            ? SizedBox(
+                width: 100,
+                height: 40,
+                child: OutlinedButton(
+                  onPressed: _onAddTap,
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.primary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Add',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              )
+            : Container(
+                width: 100,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _cart.removeItem(widget.serviceId),
+                      child: const Icon(
+                        Icons.remove,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    Text(
+                      formatQuantity(qty),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _onAddTap,
+                      child: const Icon(
+                        Icons.add,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+      ],
+    );
+  }
+
+  /// Where this service stands for this customer: a quiet confirmation when
+  /// somebody covers their state, and the "no vendor in your zone" notice
+  /// with the out-of-state vendors underneath it when nobody does.
+  ///
+  /// Silent while the answer is still in the air, and silent for anyone we
+  /// cannot place, so a guest browsing sees the page exactly as before.
+  Widget _buildZoneNotice() {
+    if (_isCheckingZone || _zone == null) return const SizedBox.shrink();
+    if (_zone!['state_known'] != true) return const SizedBox.shrink();
+
+    if (!_zoneBlocked) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle, size: 15, color: Colors.green),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Available in ${_zoneStateName()}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.green,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final elsewhere = _vendorsElsewhere;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF8E1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFFFE0A3)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.location_off_outlined,
+                size: 20,
+                color: Color(0xFFE65100),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'No vendor in your zone',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF7A3E00),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Nobody does this service in ${_zoneStateName()} yet, so '
+                      'it cannot be booked here for now.',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        height: 1.4,
+                        color: Color(0xFF7A3E00),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        if (elsewhere.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          const Text(
+            'Vendors in other areas',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'These vendors do this work, but not where you are. The state and '
+            'district each one covers from is on their card.',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.textGrey,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...List.generate(elsewhere.length, (index) {
+            final vendor = Map<String, dynamic>.from(elsewhere[index]);
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: index == elsewhere.length - 1 ? 0 : 12,
+              ),
+              // No Book action: this vendor has said they do not work where
+              // the customer is, and the card is here to say who does this
+              // work and where, not to take a booking they cannot serve.
+              // Only a pro has a profile page to open; the rest are inert.
+              child: ProVendorListTile(
+                vendor: vendor,
+                onTap: vendor['is_pro'] == true
+                    ? () => _openProProfile(vendor)
+                    : null,
+              ),
+            );
+          }),
+        ],
+      ],
+    );
   }
 
   /// The pro vendors who can take this service on, listed under the reviews.
@@ -381,10 +843,14 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        if (_discountInfo != null) ...[
-                          // Discounted price
+                        // A discount is struck through the rate, not the
+                        // total: on a per-unit service the rate is what the
+                        // customer is comparing.
+                        if (_discountInfo != null && !_pricing.isQuoteOnly) ...[
                           Text(
-                            '₹${_discountedPrice.toStringAsFixed(0)}',
+                            _withUnit(
+                              '₹${_discountedPrice.toStringAsFixed(0)}',
+                            ),
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -392,7 +858,6 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          // Original price struck through
                           Text(
                             '₹${widget.price.toStringAsFixed(0)}',
                             style: const TextStyle(
@@ -403,7 +868,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                           ),
                         ] else
                           Text(
-                            '₹${widget.price.toStringAsFixed(0)}',
+                            _pricing.priceLabel,
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -476,107 +941,13 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       ),
                     ),
 
+                    _buildZoneNotice(),
+
                     const SizedBox(height: 24),
                     const Divider(),
                     const SizedBox(height: 16),
 
-                    // Add to cart section
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade200),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Text(
-                                //   '₹${widget.price.toStringAsFixed(0)}',
-                                //   style: const TextStyle(
-                                //     fontSize: 18,
-                                //     fontWeight: FontWeight.bold,
-                                //   ),
-                                // ),
-                                const SizedBox(height: 2),
-                                const Text(
-                                  'per unit',
-                                  style: TextStyle(
-                                    color: AppColors.textGrey,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          qty == 0
-                              ? SizedBox(
-                                  width: 100,
-                                  height: 40,
-                                  child: OutlinedButton(
-                                    onPressed: _onAddTap,
-                                    style: OutlinedButton.styleFrom(
-                                      side: const BorderSide(
-                                        color: AppColors.primary,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'Add',
-                                      style: TextStyle(
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : Container(
-                                  width: 100,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      GestureDetector(
-                                        onTap: () =>
-                                            _cart.removeItem(widget.serviceId),
-                                        child: const Icon(
-                                          Icons.remove,
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                      ),
-                                      Text(
-                                        '$qty',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      GestureDetector(
-                                        onTap: _onAddTap,
-                                        child: const Icon(
-                                          Icons.add,
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                        ],
-                      ),
-                    ),
+                    _buildBookingBox(qty),
 
                     if (widget.description.isNotEmpty) ...[
                       const SizedBox(height: 24),

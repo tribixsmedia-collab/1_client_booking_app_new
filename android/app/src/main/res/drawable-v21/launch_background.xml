@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+The window Android paints before Flutter's first frame.
+
+Deliberately a bare colour, with no logo on it. The app already has a splash
+screen of its own (lib/screens/splash_screen.dart) that fades the logo in on
+white, and drawing a second logo here made the app look like it started
+twice. Keeping this the same white means the handover to Flutter is a colour
+that never changes rather than a screen that gets replaced.
+-->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item>
-        <bitmap android:gravity="fill" android:src="@drawable/background"/>
-    </item>
-    <item>
-        <bitmap android:gravity="center" android:src="@drawable/splash"/>
-    </item>
+    <item android:drawable="@color/launch_background"/>
 </layer-list>

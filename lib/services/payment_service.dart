@@ -26,7 +26,12 @@ class PaymentResult {
   bool get needsConfirmation => outcome == PaymentOutcome.pendingConfirmation;
 }
 
-/// Runs one Razorpay checkout for one booking.
+/// What a checkout is paying for. The two differ only in which endpoints
+/// open the order, verify the result and answer "did it actually land?".
+enum _Target { booking, tenderFee }
+
+/// Runs one Razorpay checkout — for a booking, or for the fee that confirms a
+/// tender bid.
 ///
 /// [Checkout] hides whether that is the native plugin or the browser SDK; both
 /// hand back the same [CheckoutOutcome]. A fresh instance is used per attempt
@@ -40,7 +45,9 @@ class PaymentService {
   final _checkout = Checkout();
   bool _inProgress = false;
 
+  _Target _target = _Target.booking;
   int? _bookingId;
+  int? _tenderId;
   String? _orderId;
 
   /// Releases the checkout. Call from the caller's `dispose`.
@@ -73,7 +80,9 @@ class PaymentService {
       );
     }
 
+    _target = _Target.booking;
     _bookingId = bookingId;
+    _tenderId = null;
     _orderId = '${order['order_id']}';
     _inProgress = true;
 
@@ -88,6 +97,70 @@ class PaymentService {
         'name': 'Make My House',
         'description': description.isEmpty
             ? 'Booking #$bookingId'
+            : description,
+        'prefill': {
+          if (contactPhone.isNotEmpty) 'contact': contactPhone,
+          if (email.isNotEmpty) 'email': email,
+        },
+        'retry': {'enabled': true, 'max_count': 1},
+        'timeout': 300,
+      });
+      return await _resolve(outcome);
+    } catch (_) {
+      return const PaymentResult(
+        PaymentOutcome.failed,
+        'Could not open the payment screen.',
+      );
+    } finally {
+      _inProgress = false;
+    }
+  }
+
+  /// Opens Checkout for the fee that confirms the bid chosen on [tenderId].
+  ///
+  /// The vendor is not told they have won until this comes back
+  /// [PaymentOutcome.success] — that is the whole point of the fee, so a
+  /// failed attempt leaves the choice held rather than losing it.
+  Future<PaymentResult> payTenderConfirmationFee({
+    required int tenderId,
+    String description = '',
+    String contactPhone = '',
+    String email = '',
+  }) async {
+    if (_inProgress) {
+      return const PaymentResult(
+        PaymentOutcome.failed,
+        'A payment is already in progress.',
+      );
+    }
+
+    Map<String, dynamic> order;
+    try {
+      order = await ApiService.createTenderConfirmationOrder(tenderId);
+    } catch (e) {
+      return PaymentResult(
+        PaymentOutcome.failed,
+        e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+
+    _target = _Target.tenderFee;
+    _tenderId = tenderId;
+    _bookingId = null;
+    _orderId = '${order['order_id']}';
+    _inProgress = true;
+
+    try {
+      final outcome = await _checkout.open({
+        // Every value below comes from the server's order response. The app
+        // never composes an amount of its own.
+        'key': order['key_id'],
+        'order_id': order['order_id'],
+        'amount': order['amount'], // paise
+        'currency': order['currency'] ?? 'INR',
+        'name': 'Make My House',
+        'description': description.isEmpty
+            ? 'Confirmation fee'
             : description,
         'prefill': {
           if (contactPhone.isNotEmpty) 'contact': contactPhone,
@@ -134,12 +207,23 @@ class PaymentService {
   Future<PaymentResult> _verify(CheckoutOutcome outcome) async {
     // Razorpay says it worked, but only the server can confirm the money is
     // actually held -- so this stays unpaid until our own API agrees.
+    final orderId = outcome.orderId ?? _orderId ?? '';
+    final paymentId = outcome.paymentId ?? '';
+    final signature = outcome.signature ?? '';
     try {
-      await ApiService.verifyPayment(
-        orderId: outcome.orderId ?? _orderId ?? '',
-        paymentId: outcome.paymentId ?? '',
-        signature: outcome.signature ?? '',
-      );
+      if (_target == _Target.tenderFee) {
+        await ApiService.verifyTenderConfirmationPayment(
+          orderId: orderId,
+          paymentId: paymentId,
+          signature: signature,
+        );
+      } else {
+        await ApiService.verifyPayment(
+          orderId: orderId,
+          paymentId: paymentId,
+          signature: signature,
+        );
+      }
       return PaymentResult(
         PaymentOutcome.success,
         'Payment successful.',
@@ -155,14 +239,18 @@ class PaymentService {
 
   /// Last word on an attempt we could not verify directly.
   Future<PaymentResult> _reconcile(String? paymentId) async {
-    if (_bookingId == null) {
+    final isFee = _target == _Target.tenderFee;
+    final id = isFee ? _tenderId : _bookingId;
+    if (id == null) {
       return const PaymentResult(
         PaymentOutcome.pendingConfirmation,
         'We could not confirm your payment. It will update shortly.',
       );
     }
     try {
-      final status = await ApiService.getBookingPaymentStatus(_bookingId!);
+      final status = isFee
+          ? await ApiService.getTenderConfirmationStatus(id)
+          : await ApiService.getBookingPaymentStatus(id);
       if (status['is_paid'] == true) {
         return PaymentResult(
           PaymentOutcome.success,
@@ -175,8 +263,11 @@ class PaymentService {
     }
     return PaymentResult(
       PaymentOutcome.pendingConfirmation,
-      'Your payment is being confirmed. This booking will update shortly — '
-      'please do not pay again.',
+      isFee
+          ? 'Your payment is being confirmed. This tender will update shortly '
+                '— please do not pay again.'
+          : 'Your payment is being confirmed. This booking will update shortly '
+                '— please do not pay again.',
       paymentId: paymentId,
     );
   }

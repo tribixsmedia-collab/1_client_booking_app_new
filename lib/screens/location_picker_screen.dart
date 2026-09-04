@@ -17,10 +17,35 @@ class PickedLocation {
   });
 }
 
+/// Basemap tiles, and the one thing to change if the map ever needs to look
+/// different again.
+///
+/// Esri's World Street Map, rather than the plain OpenStreetMap raster this
+/// used to draw: same roads, but a softer palette and far less label clutter,
+/// which is the whole reason the old map read as dated.
+///
+/// Two things make it a drop-in here. It needs no API key, so there is no
+/// billing account to keep alive, and it answers with
+/// `Access-Control-Allow-Origin: *`, so the identical URL works in the web
+/// build instead of failing CORS. Note the {z}/{y}/{x} order -- Esri puts row
+/// before column, the opposite of the usual slippy-map convention.
+///
+/// If tile usage ever outgrows a public endpoint, MapTiler and Stadia both
+/// serve raster URLs of the same shape once `?key=...` is appended, so
+/// switching is a change to this string and the attribution below.
+const _tileUrlTemplate =
+    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+
+// 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map'
+// '/MapServer/tile/{z}/{y}/{x}';
+
+/// Required by the tile licence, and it has to stay visible on the map.
+const _tileAttribution = '© OpenStreetMap contributors © CARTO';
+// 'Esri, HERE, Garmin, OpenStreetMap contributors';
+
 /// Map screen where the customer fine-tunes their exact location.
 /// Flow: opens centered on GPS -> customer can drag the MAP underneath a
 /// FIXED center pin (common map-picker UX, e.g. Uber/Swiggy) -> confirms.
-/// Uses OpenStreetMap tiles via flutter_map -- no Google API key, no cost.
 class LocationPickerScreen extends StatefulWidget {
   const LocationPickerScreen({super.key});
 
@@ -156,9 +181,16 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate: _tileUrlTemplate,
                       userAgentPackageName: 'com.homeservice.customer_app',
+                      // Esri serves no @2x tiles, so ask flutter_map to
+                      // simulate: on a high-density screen it draws one zoom
+                      // level out at double size, which keeps roads and labels
+                      // the right physical size instead of hairline-thin.
+                      retinaMode: RetinaMode.isHighDensity(context),
+                    ),
+                    const RichAttributionWidget(
+                      attributions: [TextSourceAttribution(_tileAttribution)],
                     ),
                   ],
                 ),

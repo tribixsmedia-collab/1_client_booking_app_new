@@ -7,6 +7,8 @@ import '../services/cart_service.dart';
 import '../theme.dart';
 import '../utils/image_decode.dart';
 import '../utils/profile_gate.dart';
+import '../utils/zone_gate.dart';
+import '../models/service_pricing.dart';
 class ServiceCard extends StatefulWidget {
   final int serviceId;
   final String name;
@@ -21,6 +23,10 @@ class ServiceCard extends StatefulWidget {
   final int totalReviews;
   final double? finalPrice;
   final double? discountAmount;
+
+  /// How [price] becomes an amount. Null means a flat price, which is what
+  /// every service was before pricing types existed.
+  final ServicePricing? pricing;
 
   const ServiceCard({
     super.key,
@@ -37,6 +43,7 @@ class ServiceCard extends StatefulWidget {
     this.totalReviews = 0,
     this.finalPrice,
     this.discountAmount,
+    this.pricing,
   });
 
   /// Builds a card straight from the service payload the API returns.
@@ -56,6 +63,10 @@ class ServiceCard extends StatefulWidget {
       categoryName: json['category_name'] ?? '',
       averageRating: (json['average_rating'] as num?)?.toDouble() ?? 0,
       totalReviews: json['total_reviews'] as int? ?? 0,
+      pricing: ServicePricing.fromJson(
+        json,
+        double.tryParse('${json['price']}') ?? 0,
+      ),
       finalPrice: discount != null
           ? double.tryParse('${discount['final_price']}')
           : null,
@@ -88,7 +99,34 @@ class ServiceCardState extends State<ServiceCard> {
     super.dispose();
   }
 
+  ServicePricing get _pricing =>
+      widget.pricing ?? ServicePricing.fixed(widget.price);
+
+  /// Puts the unit back on a figure we formatted ourselves, so a discounted
+  /// rate still reads as "₹12 / sq ft".
+  String _withUnit(String money) =>
+      _pricing.unitLabel.isEmpty ? money : '$money / ${_pricing.unitLabel}';
+
   Future<void> _onAddTap() async {
+    // A card has no room to ask how many square feet, and a quote has no
+    // price to add at all. Both open the service instead, which is where
+    // those are handled.
+    if (_pricing.needsQuantity || _pricing.isQuoteOnly) {
+      await _openDetail();
+      return;
+    }
+
+    // Nobody works this service where the customer lives -- say so rather
+    // than letting a booking through that cannot be filled.
+    if (!await checkServiceZone(
+      context,
+      serviceId: widget.serviceId,
+      serviceName: widget.name,
+    )) {
+      return;
+    }
+    if (!mounted) return;
+
     // Check for form
     try {
       List<dynamic> forms = await ApiService.getFormByService(
@@ -127,6 +165,9 @@ class ServiceCardState extends State<ServiceCard> {
           serviceId: widget.serviceId,
           name: widget.name,
           price: widget.price,
+          pricingType: _pricing.type,
+          unitLabel: _pricing.unitLabel,
+          needsQuantity: _pricing.needsQuantity,
           formId: forms.first['id'],
           formData: result,
         );
@@ -144,6 +185,9 @@ class ServiceCardState extends State<ServiceCard> {
       serviceId: widget.serviceId,
       name: widget.name,
       price: widget.price,
+      pricingType: _pricing.type,
+      unitLabel: _pricing.unitLabel,
+      needsQuantity: _pricing.needsQuantity,
     );
   }
 
@@ -153,6 +197,7 @@ class ServiceCardState extends State<ServiceCard> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ServiceDetailScreen(
+          pricing: widget.pricing,
           serviceId: widget.serviceId,
           name: widget.name,
           description: widget.description,
@@ -279,7 +324,9 @@ class ServiceCardState extends State<ServiceCard> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '₹${widget.finalPrice!.toStringAsFixed(0)}',
+                                _withUnit(
+                                  '₹${widget.finalPrice!.toStringAsFixed(0)}',
+                                ),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
@@ -296,7 +343,7 @@ class ServiceCardState extends State<ServiceCard> {
                             ],
                           )
                         : Text(
-                            '₹${widget.price.toStringAsFixed(0)}',
+                            _pricing.priceLabel,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -348,7 +395,7 @@ class ServiceCardState extends State<ServiceCard> {
                                 ),
                               ),
                               Text(
-                                '$qty',
+                                formatQuantity(qty),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,

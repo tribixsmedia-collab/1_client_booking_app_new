@@ -1,9 +1,11 @@
+import '../models/service_pricing.dart';
 import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/cart_service.dart';
 import '../theme.dart';
 import '../utils/profile_gate.dart';
+import '../utils/zone_gate.dart';
 import '../screens/service_detail_screen.dart';
 import '../screens/service_form_screen.dart';
 
@@ -68,6 +70,21 @@ class _SectionSeeAllScreenState extends State<SectionSeeAllScreen> {
     final categoryName = item['category_name'] as String? ?? '';
     final name = item['name'] as String;
     final price = double.tryParse('${item['price']}') ?? 0;
+    final pricing = ServicePricing.fromJson(item, price);
+
+    // A list row has no room to ask how many square feet, and a quote has no
+    // price to add at all. Both open the service, which is where those are
+    // handled.
+    if (pricing.needsQuantity || pricing.isQuoteOnly) {
+      if (mounted) await _openDetail(item);
+      return;
+    }
+
+    if (!await checkServiceZone(
+      context, serviceId: serviceId, serviceName: name)) {
+      return;
+    }
+    if (!mounted) return;
 
     try {
       List<dynamic> forms = await ApiService.getFormByService(
@@ -102,6 +119,9 @@ class _SectionSeeAllScreenState extends State<SectionSeeAllScreen> {
           serviceId: serviceId,
           name: name,
           price: price,
+          pricingType: pricing.type,
+          unitLabel: pricing.unitLabel,
+          needsQuantity: pricing.needsQuantity,
           formId: forms.first['id'],
           formData: result,
         );
@@ -114,7 +134,14 @@ class _SectionSeeAllScreenState extends State<SectionSeeAllScreen> {
       subcategoryId: subcategoryId,
       categoryName: categoryName,
     );
-    _cart.addItem(serviceId: serviceId, name: name, price: price);
+    _cart.addItem(
+      serviceId: serviceId,
+      name: name,
+      price: price,
+      pricingType: pricing.type,
+      unitLabel: pricing.unitLabel,
+      needsQuantity: pricing.needsQuantity,
+    );
   }
 
   Future<void> _openDetail(Map<String, dynamic> item) async {
@@ -126,6 +153,10 @@ class _SectionSeeAllScreenState extends State<SectionSeeAllScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ServiceDetailScreen(
+          pricing: ServicePricing.fromJson(
+            item,
+            double.tryParse('${item['price']}') ?? 0,
+          ),
           serviceId: item['service_id'],
           name: item['name'],
           description: item['description'] ?? '',
@@ -324,7 +355,10 @@ class _SectionSeeAllScreenState extends State<SectionSeeAllScreen> {
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  '₹${finalPrice.toStringAsFixed(0)}',
+                                                  ServicePricing.fromJson(
+                                                    item,
+                                                    finalPrice,
+                                                  ).priceLabel,
                                                   style: const TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 14,
@@ -342,7 +376,10 @@ class _SectionSeeAllScreenState extends State<SectionSeeAllScreen> {
                                               ],
                                             )
                                           : Text(
-                                              '₹${price.toStringAsFixed(0)}',
+                                              ServicePricing.fromJson(
+                                                item,
+                                                price,
+                                              ).priceLabel,
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 14,
@@ -406,7 +443,7 @@ class _SectionSeeAllScreenState extends State<SectionSeeAllScreen> {
                                                   ),
                                                 ),
                                                 Text(
-                                                  '$qty',
+                                                  formatQuantity(qty),
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                     fontWeight: FontWeight.bold,

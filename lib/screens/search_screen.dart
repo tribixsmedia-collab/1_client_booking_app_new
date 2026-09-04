@@ -1,3 +1,4 @@
+import '../models/service_pricing.dart';
 import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
@@ -7,6 +8,7 @@ import 'service_list_screen.dart';
 import 'service_detail_screen.dart';
 import 'service_form_screen.dart';
 import '../utils/profile_gate.dart';
+import '../utils/zone_gate.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -38,6 +40,28 @@ class _SearchScreenState extends State<SearchScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Opens the service. Also where a per-unit or quote-only row sends the
+  /// customer, since neither can be ordered from a list row.
+  void _openServiceDetail(Map<String, dynamic> svc) {
+    final price = double.tryParse('${svc['price']}') ?? 0;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ServiceDetailScreen(
+          pricing: ServicePricing.fromJson(svc, price),
+          serviceId: svc['id'],
+          name: svc['name'],
+          description: svc['description'] ?? '',
+          price: price,
+          durationMinutes: svc['duration_minutes'],
+          imageUrl: svc['image'],
+          categoryId: svc['_category_id'],
+          subcategoryId: svc['_subcategory_id'],
+          categoryName: svc['_category_name'] ?? '',
+        ),
+      ),
+    );
+  }
+
   Future<void> _onServiceAddTap(Map<String, dynamic> svc) async {
     // Profile-completion gate
     if (!await checkProfileComplete(context)) return;
@@ -45,6 +69,21 @@ class _SearchScreenState extends State<SearchScreen> {
     final svcId = svc['id'] as int;
     final name = svc['name'] as String;
     final price = double.tryParse('${svc['price']}') ?? 0;
+    final pricing = ServicePricing.fromJson(svc, price);
+
+    // A list row has no room to ask how many square feet, and a quote has no
+    // price to add at all. Both open the service, which is where those are
+    // handled.
+    if (pricing.needsQuantity || pricing.isQuoteOnly) {
+      if (mounted) _openServiceDetail(svc);
+      return;
+    }
+
+    if (!await checkServiceZone(context, serviceId: svcId, serviceName: name)) {
+      return;
+    }
+    if (!mounted) return;
+
     final categoryId = svc['_category_id'] as int;
     final subcategoryId = svc['_subcategory_id'];
     final categoryName = svc['_category_name'] as String? ?? '';
@@ -80,6 +119,9 @@ class _SearchScreenState extends State<SearchScreen> {
           serviceId: svcId,
           name: name,
           price: price,
+          pricingType: pricing.type,
+          unitLabel: pricing.unitLabel,
+          needsQuantity: pricing.needsQuantity,
           formId: forms.first['id'],
           formData: result,
         );
@@ -92,7 +134,14 @@ class _SearchScreenState extends State<SearchScreen> {
       subcategoryId: subcategoryId,
       categoryName: categoryName,
     );
-    _cart.addItem(serviceId: svcId, name: name, price: price);
+    _cart.addItem(
+      serviceId: svcId,
+      name: name,
+      price: price,
+      pricingType: pricing.type,
+      unitLabel: pricing.unitLabel,
+      needsQuantity: pricing.needsQuantity,
+    );
   }
 
   Future<void> _loadData() async {
@@ -424,31 +473,18 @@ class _SearchScreenState extends State<SearchScreen> {
 
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Info
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => ServiceDetailScreen(
-                                serviceId: svc['id'],
-                                name: svc['name'],
-                                description: svc['description'] ?? '',
-                                price: price,
-                                durationMinutes: svc['duration_minutes'],
-                                imageUrl: imageUrl,
-                                categoryId: svc['_category_id'],
-                                subcategoryId: svc['_subcategory_id'],
-                                categoryName: svc['_category_name'] ?? '',
-                              ),
-                            ),
-                          );
-                        },
+              clipBehavior: Clip.antiAlias,
+              // The whole row opens the service, as it does in a category's
+              // service list. The Add button sits on top and keeps its own tap.
+              child: InkWell(
+                onTap: () => _openServiceDetail(svc),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Info
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -461,7 +497,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '₹${price.toStringAsFixed(0)}',
+                              ServicePricing.fromJson(svc, price).priceLabel,
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.primary,
@@ -479,99 +515,100 @@ class _SearchScreenState extends State<SearchScreen> {
                           ],
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Image + Add
-                    Column(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            width: 70,
-                            height: 60,
-                            color: Colors.grey.shade100,
-                            child: imageUrl != null && imageUrl.isNotEmpty
-                                ? Image.network(
-                                    imageUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(
+                      const SizedBox(width: 12),
+                      // Image + Add
+                      Column(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              width: 70,
+                              height: 60,
+                              color: Colors.grey.shade100,
+                              child: imageUrl != null && imageUrl.isNotEmpty
+                                  ? Image.network(
+                                      imageUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Icon(
+                                        Icons.image,
+                                        color: AppColors.textGrey,
+                                      ),
+                                    )
+                                  : const Icon(
                                       Icons.image,
                                       color: AppColors.textGrey,
                                     ),
-                                  )
-                                : const Icon(
-                                    Icons.image,
-                                    color: AppColors.textGrey,
-                                  ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        qty == 0
-                            ? SizedBox(
-                                width: 70,
-                                height: 28,
-                                child: OutlinedButton(
-                                  onPressed: () => _onServiceAddTap(svc),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: EdgeInsets.zero,
-                                    side: const BorderSide(
-                                      color: AppColors.primary,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Add',
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ),
-                              )
-                            : Container(
-                                width: 70,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () => _cart.removeItem(svc['id']),
-                                      child: const Icon(
-                                        Icons.remove,
-                                        color: Colors.white,
-                                        size: 14,
+                          const SizedBox(height: 6),
+                          qty == 0
+                              ? SizedBox(
+                                  width: 70,
+                                  height: 28,
+                                  child: OutlinedButton(
+                                    onPressed: () => _onServiceAddTap(svc),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      side: const BorderSide(
+                                        color: AppColors.primary,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6),
                                       ),
                                     ),
-                                    Text(
-                                      '$qty',
-                                      style: const TextStyle(
-                                        color: Colors.white,
+                                    child: const Text(
+                                      'Add',
+                                      style: TextStyle(
+                                        color: AppColors.primary,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 12,
+                                        fontSize: 11,
                                       ),
                                     ),
-                                    GestureDetector(
-                                      onTap: () => _onServiceAddTap(svc),
-                                      child: const Icon(
-                                        Icons.add,
-                                        color: Colors.white,
-                                        size: 14,
+                                  ),
+                                )
+                              : Container(
+                                  width: 70,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () =>
+                                            _cart.removeItem(svc['id']),
+                                        child: const Icon(
+                                          Icons.remove,
+                                          color: Colors.white,
+                                          size: 14,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                      Text(
+                                        formatQuantity(qty),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () => _onServiceAddTap(svc),
+                                        child: const Icon(
+                                          Icons.add,
+                                          color: Colors.white,
+                                          size: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );

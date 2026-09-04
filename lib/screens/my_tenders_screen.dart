@@ -320,6 +320,44 @@ class _TenderCard extends StatelessWidget {
                   ],
                 ),
               ],
+              // A choice made but not paid for outranks everything else here:
+              // the vendor is held, and nothing happens until the fee lands.
+              if (status == 'PENDING_CONFIRMATION') ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.lock_clock_rounded,
+                        size: 16,
+                        color: Colors.amber.shade800,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Your vendor is held — pay the confirmation fee to '
+                          'lock them in',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.amber.shade900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               // A tender with quotes waiting is the one thing on this screen
               // worth calling out.
               if (status == 'OPEN' && bidCount > 0) ...[

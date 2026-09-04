@@ -270,7 +270,7 @@ class _CartScreenState extends State<CartScreen> {
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
-                                              '₹${item.price.toStringAsFixed(0)} × ${item.quantity} = ₹${item.total.toStringAsFixed(0)}',
+                                              '₹${item.price.toStringAsFixed(0)} × ${item.quantityLabel} = ₹${item.total.toStringAsFixed(0)}',
                                               style: const TextStyle(
                                                 color: AppColors.textGrey,
                                                 fontSize: 13,
@@ -298,6 +298,33 @@ class _CartScreenState extends State<CartScreen> {
                                               Icons.delete_outline,
                                               color: Colors.red.shade400,
                                               size: 18,
+                                            ),
+                                          ),
+                                        )
+                                      // A measured line -- 1000 sq ft, 2.5 kg
+                                      // -- is not stepped up and down one at
+                                      // a time. It shows the amount ordered
+                                      // and is changed on the service page.
+                                      else if (item.needsQuantity)
+                                        Container(
+                                          height: 34,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                          ),
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary.withValues(
+                                              alpha: 0.08,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            item.quantityLabel,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primary,
                                             ),
                                           ),
                                         )
@@ -331,7 +358,7 @@ class _CartScreenState extends State<CartScreen> {
                                                 ),
                                               ),
                                               Text(
-                                                '${item.quantity}',
+                                                item.quantityLabel,
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   color: AppColors.primary,
@@ -342,6 +369,10 @@ class _CartScreenState extends State<CartScreen> {
                                                   serviceId: item.serviceId,
                                                   name: item.name,
                                                   price: item.price,
+                                                  pricingType: item.pricingType,
+                                                  unitLabel: item.unitLabel,
+                                                  needsQuantity:
+                                                      item.needsQuantity,
                                                 ),
                                                 child: const Padding(
                                                   padding: EdgeInsets.symmetric(

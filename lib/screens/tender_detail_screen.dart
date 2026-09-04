@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/api_service.dart';
+import '../services/payment_service.dart';
 import '../theme.dart';
 import '../utils/tender_format.dart';
 import 'create_tender_screen.dart';
@@ -28,10 +29,18 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
   /// Whether anything changed, so the list behind can refresh on the way out.
   bool _changed = false;
 
+  final _payer = PaymentService();
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _payer.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -120,6 +129,7 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
         builder: (_) => TenderBidsScreen(
           tenderId: widget.tenderId,
           expectedBudget: _tender?['expected_budget'],
+          confirmationFeePercent: _tender?['confirmation_fee_percent'],
         ),
       ),
     );
@@ -127,6 +137,51 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
       _changed = true;
       _load();
     }
+  }
+
+  /// Pays the fee that confirms the vendor they picked. Reachable from here
+  /// as well as from the bids screen, because a checkout that was closed,
+  /// declined or interrupted has to be resumable.
+  Future<void> _payConfirmationFee() async {
+    final fee = _tender?['confirmation_fee'];
+    if (fee is! Map) return;
+
+    setState(() => _isBusy = true);
+    final outcome = await _payer.payTenderConfirmationFee(
+      tenderId: widget.tenderId,
+      description: 'Confirming ${fee['vendor_name'] ?? 'your vendor'}',
+    );
+    if (!mounted) return;
+    setState(() => _isBusy = false);
+
+    _changed = true;
+    _snack(
+      outcome.isSuccess
+          ? 'Confirmed. ${fee['vendor_name'] ?? 'Your vendor'} has the job.'
+          : outcome.message,
+    );
+    await _load();
+  }
+
+  Future<void> _releaseSelection() async {
+    final fee = _tender?['confirmation_fee'];
+    final vendorName = fee is Map ? fee['vendor_name'] : null;
+
+    final confirmed = await _askToConfirm(
+      title: 'Choose someone else?',
+      message: vendorName == null
+          ? 'Your tender goes back to open, and every bid is in the running '
+                'again. Nothing has been charged.'
+          : '$vendorName goes back in the pile and your tender is open for '
+                'bids again. Nothing has been charged.',
+      confirmLabel: 'Release and reopen',
+    );
+    if (!confirmed) return;
+
+    await _run(
+      () => ApiService.releaseTenderSelection(widget.tenderId),
+      'Your choice has been released. Compare the bids again whenever you like.',
+    );
   }
 
   Future<void> _payMilestone(Map<String, dynamic> milestone) async {
@@ -271,6 +326,32 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
     );
     controller.dispose();
     return result;
+  }
+
+  /// A plain yes/no, for the decisions that need no reason attached.
+  Future<bool> _askToConfirm({
+    required String title,
+    required String message,
+    required String confirmLabel,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message, style: const TextStyle(fontSize: 13.5)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Not now'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(confirmLabel),
+          ),
+        ],
+      ),
+    );
+    return result == true;
   }
 
   Future<void> _call(String number) async {
@@ -526,6 +607,26 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
               ? 'No bids yet — check back soon'
               : 'Compare $bidCount bid${bidCount == 1 ? '' : 's'}',
           onPressed: bidCount == 0 ? null : _openBids,
+        ),
+      );
+    }
+
+    // Chosen but not paid for. The fee is the only thing between them and a
+    // confirmed vendor, so it leads; changing their mind sits underneath it.
+    final fee = tender['confirmation_fee'];
+    if (status == 'PENDING_CONFIRMATION' && fee is Map) {
+      buttons.add(
+        _bigButton(
+          icon: Icons.lock_open_rounded,
+          label: 'Pay ${tenderMoneyExact(fee['amount'])} to confirm',
+          onPressed: _payConfirmationFee,
+        ),
+      );
+      buttons.add(
+        TextButton.icon(
+          onPressed: _isBusy ? null : _releaseSelection,
+          icon: const Icon(Icons.undo_rounded, size: 18),
+          label: const Text('Choose a different vendor'),
         ),
       );
     }

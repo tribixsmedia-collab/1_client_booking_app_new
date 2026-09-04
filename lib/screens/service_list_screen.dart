@@ -1,3 +1,4 @@
+import '../models/service_pricing.dart';
 import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
@@ -7,6 +8,7 @@ import 'cart_screen.dart';
 import 'service_form_screen.dart';
 import 'service_detail_screen.dart';
 import '../utils/profile_gate.dart';
+import '../utils/zone_gate.dart';
 
 class ServiceListScreen extends StatefulWidget {
   final int categoryId;
@@ -43,25 +45,12 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
     _cart.addListener(_onCartChanged);
     _preloadForms();
 
-    // If only one service, go directly to detail screen
+    // A list of one is no choice at all, so go straight to the service.
+    // Replacing rather than pushing keeps Back going where the customer came
+    // from instead of to a one-row list.
     if (widget.services.length == 1) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        final svc = widget.services.first;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => ServiceDetailScreen(
-              serviceId: svc['id'],
-              name: svc['name'],
-              description: svc['description'] ?? '',
-              price: double.tryParse('${svc['price']}') ?? 0,
-              durationMinutes: svc['duration_minutes'],
-              imageUrl: svc['image'],
-              categoryId: widget.categoryId,
-              subcategoryId: widget.subcategoryId,
-              categoryName: widget.title,
-            ),
-          ),
-        );
+        _openServiceDetail(widget.services.first, replace: true);
       });
     }
   }
@@ -105,6 +94,33 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Opens the service. Also where a per-unit or quote-only row sends the
+  /// customer, since neither can be ordered from a list row.
+  ///
+  /// The one place this screen is built, so its pricing cannot be passed on
+  /// one route and forgotten on another -- which is exactly how a quote
+  /// service reached here once showing a price instead of "Price on request".
+  void _openServiceDetail(Map<String, dynamic> svc, {bool replace = false}) {
+    final price = double.tryParse('${svc['price']}') ?? 0;
+    final route = MaterialPageRoute(
+      builder: (_) => ServiceDetailScreen(
+        pricing: ServicePricing.fromJson(svc, price),
+        serviceId: svc['id'],
+        name: svc['name'],
+        description: svc['description'] ?? '',
+        price: price,
+        durationMinutes: svc['duration_minutes'],
+        imageUrl: svc['image'],
+        categoryId: widget.categoryId,
+        subcategoryId: widget.subcategoryId,
+        categoryName: widget.title,
+      ),
+    );
+
+    final navigator = Navigator.of(context);
+    replace ? navigator.pushReplacement(route) : navigator.push(route);
+  }
+
   Future<void> _onAddTap(Map<String, dynamic> svc) async {
     // Profile-completion gate
     if (!await checkProfileComplete(context)) return;
@@ -112,6 +128,20 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
     final svcId = svc['id'] as int;
     final name = svc['name'] as String;
     final price = double.tryParse('${svc['price']}') ?? 0;
+    final pricing = ServicePricing.fromJson(svc, price);
+
+    // A list row has no room to ask how many square feet, and a quote has no
+    // price to add at all. Both open the service, which is where those are
+    // handled.
+    if (pricing.needsQuantity || pricing.isQuoteOnly) {
+      if (mounted) _openServiceDetail(svc);
+      return;
+    }
+
+    if (!await checkServiceZone(context, serviceId: svcId, serviceName: name)) {
+      return;
+    }
+    if (!mounted) return;
 
     final form = _formCache[svcId];
 
@@ -134,12 +164,22 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
         serviceId: svcId,
         name: name,
         price: price,
+        pricingType: pricing.type,
+        unitLabel: pricing.unitLabel,
+        needsQuantity: pricing.needsQuantity,
         formId: form['id'],
         formData: result,
       );
     } else {
       // No form — add directly
-      _cart.addItem(serviceId: svcId, name: name, price: price);
+      _cart.addItem(
+        serviceId: svcId,
+        name: name,
+        price: price,
+        pricingType: pricing.type,
+        unitLabel: pricing.unitLabel,
+        needsQuantity: pricing.needsQuantity,
+      );
     }
   }
 
@@ -167,36 +207,28 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                   final desc = (svc['description'] as String?) ?? '';
                   final imageUrl = svc['image'] as String?;
                   final duration = svc['duration_minutes'] as int?;
+                  final rating =
+                      (svc['average_rating'] as num?)?.toDouble() ?? 0;
+                  final reviews = (svc['total_reviews'] as int?) ?? 0;
                   final qty = _cart.getQuantity(svcId);
                   final hasForm = _formCache[svcId] != null;
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Info
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => ServiceDetailScreen(
-                                      serviceId: svcId,
-                                      name: name,
-                                      description: desc,
-                                      price: price,
-                                      durationMinutes: duration,
-                                      imageUrl: imageUrl,
-                                      categoryId: widget.categoryId,
-                                      subcategoryId: widget.subcategoryId,
-                                      categoryName: widget.title,
-                                    ),
-                                  ),
-                                );
-                              },
+                    clipBehavior: Clip.antiAlias,
+                    // The whole row opens the service. Tapping a card and
+                    // getting nothing because only the title was live is not
+                    // something a customer should have to learn; the Add
+                    // button sits on top and keeps its own tap.
+                    child: InkWell(
+                      onTap: () => _openServiceDetail(svc),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Info
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -209,186 +241,228 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '₹${price.toStringAsFixed(0)}',
+                                    ServicePricing.fromJson(
+                                      svc,
+                                      price,
+                                    ).priceLabel,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
                                       color: AppColors.primary,
                                     ),
                                   ),
-                                  if (duration != null) ...[
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '• $duration mins',
-                                      style: const TextStyle(
-                                        color: AppColors.textGrey,
-                                        fontSize: 12,
-                                      ),
+                                  // Rating and duration share a line: two
+                                  // small facts, and the card has more room
+                                  // across than down.
+                                  if (reviews > 0 || duration != null) ...[
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        if (reviews > 0) ...[
+                                          const Icon(
+                                            Icons.star_rounded,
+                                            size: 15,
+                                            color: Color(0xFFFFB300),
+                                          ),
+                                          const SizedBox(width: 2),
+                                          Text(
+                                            '${rating.toStringAsFixed(1)} '
+                                            '($reviews)',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.textDark,
+                                            ),
+                                          ),
+                                        ],
+                                        if (reviews > 0 && duration != null)
+                                          const Text(
+                                            '  •  ',
+                                            style: TextStyle(
+                                              color: AppColors.textGrey,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        if (duration != null)
+                                          Text(
+                                            '$duration mins',
+                                            style: const TextStyle(
+                                              color: AppColors.textGrey,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ],
                                   if (desc.isNotEmpty) ...[
                                     const SizedBox(height: 6),
                                     Text(
                                       desc,
-                                      maxLines: 3,
+                                      // Two lines: enough to say what the
+                                      // service is, not enough to push the
+                                      // next card off the screen.
+                                      maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
                                         color: AppColors.textGrey,
                                         fontSize: 12,
+                                        height: 1.35,
                                       ),
                                     ),
                                   ],
                                 ],
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Image + Add button
-                          Column(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Container(
-                                  width: 90,
-                                  height: 80,
-                                  color: Colors.grey.shade100,
-                                  child: imageUrl != null && imageUrl.isNotEmpty
-                                      ? Image.network(
-                                          imageUrl,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) =>
-                                              const Icon(
-                                                Icons.image,
-                                                color: AppColors.textGrey,
-                                              ),
-                                        )
-                                      : const Icon(
-                                          Icons.image,
-                                          color: AppColors.textGrey,
-                                        ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              // Add button — always shows "Add" for form services
-                              // (each add opens form for unique config)
-                              SizedBox(
-                                width: 90,
-                                height: 34,
-                                child: hasForm
-                                    ? OutlinedButton(
-                                        onPressed: () => _onAddTap(svc),
-                                        style: OutlinedButton.styleFrom(
-                                          padding: EdgeInsets.zero,
-                                          side: const BorderSide(
-                                            color: AppColors.primary,
+                            const SizedBox(width: 12),
+                            // Image + Add button
+                            Column(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Container(
+                                    width: 90,
+                                    height: 80,
+                                    color: Colors.grey.shade100,
+                                    child:
+                                        imageUrl != null && imageUrl.isNotEmpty
+                                        ? Image.network(
+                                            imageUrl,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) =>
+                                                const Icon(
+                                                  Icons.image,
+                                                  color: AppColors.textGrey,
+                                                ),
+                                          )
+                                        : const Icon(
+                                            Icons.image,
+                                            color: AppColors.textGrey,
                                           ),
-                                          shape: RoundedRectangleBorder(
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                // Add button — always shows "Add" for form services
+                                // (each add opens form for unique config)
+                                SizedBox(
+                                  width: 90,
+                                  height: 34,
+                                  child: hasForm
+                                      ? OutlinedButton(
+                                          onPressed: () => _onAddTap(svc),
+                                          style: OutlinedButton.styleFrom(
+                                            padding: EdgeInsets.zero,
+                                            side: const BorderSide(
+                                              color: AppColors.primary,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              const Text(
+                                                'Add',
+                                                style: TextStyle(
+                                                  color: AppColors.primary,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              if (qty > 0) ...[
+                                                const SizedBox(width: 4),
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 4,
+                                                        vertical: 1,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.primary,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    formatQuantity(qty),
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        )
+                                      : qty == 0
+                                      ? OutlinedButton(
+                                          onPressed: () => _onAddTap(svc),
+                                          style: OutlinedButton.styleFrom(
+                                            padding: EdgeInsets.zero,
+                                            side: const BorderSide(
+                                              color: AppColors.primary,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Add',
+                                            style: TextStyle(
+                                              color: AppColors.primary,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        )
+                                      : Container(
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary,
                                             borderRadius: BorderRadius.circular(
                                               8,
                                             ),
                                           ),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            const Text(
-                                              'Add',
-                                              style: TextStyle(
-                                                color: AppColors.primary,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            if (qty > 0) ...[
-                                              const SizedBox(width: 4),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 4,
-                                                      vertical: 1,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.primary,
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceEvenly,
+                                            children: [
+                                              GestureDetector(
+                                                onTap: () =>
+                                                    _cart.removeItem(svcId),
+                                                child: const Icon(
+                                                  Icons.remove,
+                                                  color: Colors.white,
+                                                  size: 18,
                                                 ),
-                                                child: Text(
-                                                  '$qty',
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
+                                              ),
+                                              Text(
+                                                formatQuantity(qty),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              GestureDetector(
+                                                onTap: () => _onAddTap(svc),
+                                                child: const Icon(
+                                                  Icons.add,
+                                                  color: Colors.white,
+                                                  size: 18,
                                                 ),
                                               ),
                                             ],
-                                          ],
-                                        ),
-                                      )
-                                    : qty == 0
-                                    ? OutlinedButton(
-                                        onPressed: () => _onAddTap(svc),
-                                        style: OutlinedButton.styleFrom(
-                                          padding: EdgeInsets.zero,
-                                          side: const BorderSide(
-                                            color: AppColors.primary,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
                                           ),
                                         ),
-                                        child: const Text(
-                                          'Add',
-                                          style: TextStyle(
-                                            color: AppColors.primary,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      )
-                                    : Container(
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
-                                          children: [
-                                            GestureDetector(
-                                              onTap: () =>
-                                                  _cart.removeItem(svcId),
-                                              child: const Icon(
-                                                Icons.remove,
-                                                color: Colors.white,
-                                                size: 18,
-                                              ),
-                                            ),
-                                            Text(
-                                              '$qty',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            GestureDetector(
-                                              onTap: () => _onAddTap(svc),
-                                              child: const Icon(
-                                                Icons.add,
-                                                color: Colors.white,
-                                                size: 18,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );

@@ -1,3 +1,4 @@
+import '../models/service_pricing.dart';
 import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
@@ -133,6 +134,10 @@ class _ProVendorDetailScreenState extends State<ProVendorDetailScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ServiceDetailScreen(
+          pricing: ServicePricing.fromJson(
+            service,
+            double.tryParse('${service['price']}') ?? 0,
+          ),
           serviceId: service['id'],
           name: service['name'],
           description: service['description'] ?? '',

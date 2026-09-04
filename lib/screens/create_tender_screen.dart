@@ -20,13 +20,43 @@ import '../utils/tender_format.dart';
 /// has sent one back: the customer has to be able to act on the reason before
 /// publishing again, and re-submitting an unchanged tender would just be
 /// rejected a second time.
+/// What a quote-only service hands the tender form to start it off.
+class QuoteSeed {
+  /// The service's own category and subcategory — the form's "type of work".
+  final int categoryId;
+  final int? subcategoryId;
+
+  /// One of Tender.ProjectType. Empty leaves the form on its default.
+  final String projectType;
+
+  /// The service's name, used as the opening title.
+  final String serviceName;
+
+  const QuoteSeed({
+    required this.categoryId,
+    this.subcategoryId,
+    this.projectType = '',
+    this.serviceName = '',
+  });
+}
+
+
 class CreateTenderScreen extends StatefulWidget {
   /// The tender being edited, as returned by the detail endpoint. Null when
   /// posting a new one. Only DRAFT and REJECTED tenders may be passed here —
   /// the server refuses to change any other status.
   final Map<String, dynamic>? tender;
 
-  const CreateTenderScreen({super.key, this.tender});
+  /// The quote-only service the customer came from, when they arrived by
+  /// tapping "Request a quote" rather than posting a tender from scratch.
+  ///
+  /// It answers the first two questions the form asks — what kind of project
+  /// this is, and what type of work — so the customer starts from the service
+  /// they were already looking at instead of describing it again. Everything
+  /// stays editable; this only decides what the form opens with.
+  final QuoteSeed? seed;
+
+  const CreateTenderScreen({super.key, this.tender, this.seed});
 
   @override
   State<CreateTenderScreen> createState() => _CreateTenderScreenState();
@@ -87,7 +117,53 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
     if (_isEditing) {
       _prefillFromTender();
     } else {
+      // The service the customer came from answers the first two questions;
+      // their profile answers the address ones.
+      _prefillFromService();
       _prefillFromProfile();
+    }
+  }
+
+  /// Opens the form on the quote-only service the customer tapped, so they do
+  /// not describe again what they were just looking at.
+  ///
+  /// Only what the service actually knows: the project type an admin set on
+  /// it, its own category and subcategory as the type of work, and its name
+  /// as a starting title. All of it stays editable.
+  void _prefillFromService() {
+    final seed = widget.seed;
+    if (seed == null) return;
+
+    _categoryId = seed.categoryId;
+    _subcategoryId = seed.subcategoryId;
+    // Only a value the dropdown actually offers, or it would have nothing to
+    // show for it.
+    if (_projectTypes.containsKey(seed.projectType)) {
+      _projectType = seed.projectType;
+    }
+    if (seed.serviceName.isNotEmpty && _title.text.isEmpty) {
+      _title.text = seed.serviceName;
+    }
+  }
+
+  /// Lets go of a seeded category the list does not offer.
+  ///
+  /// The service's category could have been switched off since, and a
+  /// dropdown holding a value that is not among its items throws rather than
+  /// just looking wrong. Falling back to an empty picker is the safe end.
+  void _dropSeededCategoryIfMissing() {
+    if (_categoryId == null) return;
+
+    final offered = _categories.any((c) => c['id'] == _categoryId);
+    if (!offered) {
+      _categoryId = null;
+      _subcategoryId = null;
+      return;
+    }
+
+    if (_subcategoryId != null &&
+        !_subcategories.any((s) => s['id'] == _subcategoryId)) {
+      _subcategoryId = null;
     }
   }
 
@@ -118,6 +194,7 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
       setState(() {
         _categories = categories;
         _loadingCategories = false;
+        _dropSeededCategoryIfMissing();
       });
     } catch (e) {
       if (!mounted) return;

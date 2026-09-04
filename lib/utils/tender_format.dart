@@ -18,6 +18,23 @@ String tenderMoney(dynamic amount) {
   return _rupees.format(value);
 }
 
+final _rupeesExact = NumberFormat.currency(
+  locale: 'en_IN',
+  symbol: '₹',
+  decimalDigits: 2,
+);
+
+/// Like [tenderMoney], but keeps the paise.
+///
+/// For the confirmation fee, where the figure on the button has to be the
+/// figure Razorpay charges — a percentage of a bid lands on a half-rupee
+/// often enough that rounding it in the UI reads as a different price.
+String tenderMoneyExact(dynamic amount) {
+  final value = double.tryParse('${amount ?? ''}');
+  if (value == null) return '—';
+  return _rupeesExact.format(value);
+}
+
 /// '2026-08-26' -> '26 Aug 2026'.
 String tenderDate(dynamic raw) {
   final parsed = DateTime.tryParse('${raw ?? ''}'.trim());
@@ -90,6 +107,14 @@ TenderStatusStyle tenderStatusStyle(String? status) {
         Colors.blue.shade700,
         Icons.campaign_rounded,
         'Vendors can see this and are sending their quotes.',
+      );
+    case 'PENDING_CONFIRMATION':
+      return TenderStatusStyle(
+        'Awaiting confirmation',
+        Colors.amber.shade800,
+        Icons.lock_clock_rounded,
+        'Your vendor is held for you. Pay the confirmation fee to lock '
+            'them in — nothing is awarded until you do.',
       );
     case 'AWARDED':
       return TenderStatusStyle(

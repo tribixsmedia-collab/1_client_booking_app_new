@@ -33,6 +33,38 @@ class ApiService {
     await prefs.remove(_tokenKey);
     await prefs.remove(_refreshKey);
     NotificationService.instance.reset();
+    _cachedArea = null;
+  }
+
+  /// Where the signed-in customer is, held for the session.
+  ///
+  /// Every service page asks whether it can be booked there, and somebody
+  /// does not move house while browsing. Cleared on logout and whenever the
+  /// profile is saved. Keys: `state` and `district`.
+  static Map<String, String>? _cachedArea;
+
+  /// The customer's own state and district, or null when nobody is signed in,
+  /// the profile carries no state yet, or the profile could not be read.
+  ///
+  /// Null is not "no vendors" — it is "we do not know where they are", and
+  /// the zone check lets an unknown place through rather than blocking a
+  /// booking over it. The district may be empty even when the state is not,
+  /// in which case the question is asked of the state alone.
+  static Future<Map<String, String>?> getMyArea() async {
+    if (_cachedArea != null) return _cachedArea;
+    if (!await isLoggedIn()) return null;
+
+    try {
+      final profile = await getMyProfile();
+      final state = (profile['state'] as String?)?.trim() ?? '';
+      if (state.isEmpty) return null;
+      return _cachedArea = {
+        'state': state,
+        'district': (profile['district'] as String?)?.trim() ?? '',
+      };
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<bool> isLoggedIn() async {
@@ -366,7 +398,52 @@ class ApiService {
     if (res.statusCode != 200) {
       throw Exception(_extractFirstError(jsonDecode(res.body)));
     }
+    // They may have just moved somewhere else; the zone check must not go on
+    // answering for where they used to be.
+    _cachedArea = state.trim().isEmpty
+        ? null
+        : {'state': state.trim(), 'district': district.trim()};
   }
+  // ---------- Email verification (OTP to the address on the profile) ----------
+  //
+  // The address is never written by the profile form. It reaches the account
+  // through verifyEmailOtp alone, which is what makes the badge mean anything.
+
+  /// Emails a 6-digit code to [email]. Throws with the server's wording on a
+  /// cooldown, an address another account already proved, or a failed send.
+  static Future<void> sendEmailOtp(String email) async {
+    final res = await _withAuth(
+      (headers) => http.post(
+        Uri.parse('$kApiBaseUrl/auth/email/send-otp/'),
+        headers: headers,
+        body: jsonEncode({'email': email}),
+      ),
+    );
+    if (res.statusCode != 200) {
+      throw Exception(
+        _errorFrom(res, 'Could not send the code. Please try again.'),
+      );
+    }
+  }
+
+  /// Confirms the code. On success the address is saved on the account and
+  /// marked verified, so the profile save that follows just agrees with it.
+  static Future<void> verifyEmailOtp({
+    required String email,
+    required String code,
+  }) async {
+    final res = await _withAuth(
+      (headers) => http.post(
+        Uri.parse('$kApiBaseUrl/auth/email/verify-otp/'),
+        headers: headers,
+        body: jsonEncode({'email': email, 'code': code}),
+      ),
+    );
+    if (res.statusCode != 200) {
+      throw Exception(_errorFrom(res, 'Could not verify that code.'));
+    }
+  }
+
   // ---------- Header Carousel ----------
 
   static Future<List<dynamic>> getHeaderBanners() async {
@@ -474,10 +551,14 @@ class ApiService {
   static Future<List<dynamic>> getProVendors({
     int? serviceId,
     int? categoryId,
+    String? state,
+    String? district,
   }) async {
     final query = <String, String>{
       if (serviceId != null) 'service': '$serviceId',
       if (categoryId != null) 'category': '$categoryId',
+      if (state != null && state.isNotEmpty) 'state': state,
+      if (district != null && district.isNotEmpty) 'district': district,
     };
     final uri = Uri.parse(
       '$kApiBaseUrl/vendors/pro/',
@@ -488,6 +569,61 @@ class ApiService {
       if (res.statusCode == 200) return jsonDecode(res.body);
     } catch (_) {}
     return [];
+  }
+
+  /// Every state with the districts under it, for the pickers on the profile
+  /// form. Fetched once when that screen opens — around 20KB.
+  ///
+  /// A state whose list comes back empty is one the server holds no districts
+  /// for, and the form lets that district be typed instead of picked. An
+  /// empty result overall means the call failed, which the form treats the
+  /// same way: nobody should be locked out of their own profile because a
+  /// lookup did not load.
+  static Future<Map<String, List<String>>> getRegions() async {
+    try {
+      final res = await http.get(Uri.parse('$kApiBaseUrl/vendors/regions/'));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        return {
+          for (final entry in (body['states'] as List<dynamic>))
+            entry['name'] as String:
+                List<String>.from(entry['districts'] as List<dynamic>),
+        };
+      }
+    } catch (_) {}
+    return {};
+  }
+
+  /// Whether this service can actually be had in [state] (narrowed by
+  /// [district] when we know it), and who is around if not.
+  ///
+  /// Returns null when the call fails: not being able to reach the server is
+  /// no reason to tell a customer their zone is uncovered, so the caller
+  /// treats null as "carry on".
+  ///
+  /// Keys: `available`, `state`, `district`, `state_known`, `vendor_count`
+  /// and `vendors_elsewhere` — vendor cards from elsewhere, each carrying the
+  /// state and district it shows.
+  static Future<Map<String, dynamic>?> getServiceAvailability({
+    required int serviceId,
+    String? state,
+    String? district,
+  }) async {
+    final uri = Uri.parse('$kApiBaseUrl/vendors/availability/').replace(
+      queryParameters: {
+        'service': '$serviceId',
+        if (state != null && state.isNotEmpty) 'state': state,
+        if (district != null && district.isNotEmpty) 'district': district,
+      },
+    );
+
+    try {
+      final res = await http.get(uri);
+      if (res.statusCode == 200) {
+        return Map<String, dynamic>.from(jsonDecode(res.body));
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// Full profile for one pro vendor, or null when they are no longer listed.
@@ -1037,7 +1173,12 @@ class ApiService {
     throw Exception('Could not load the bids.');
   }
 
-  /// Awards the tender to this bid. Every other bid is turned down.
+  /// Chooses this bid. The choice is *held*, not awarded: the response comes
+  /// back with a `fee` the customer has to pay to confirm it, and only then
+  /// is the vendor told and every other bid turned down.
+  ///
+  /// `fee` is null when the platform is not charging one, in which case the
+  /// tender is awarded on the spot.
   static Future<Map<String, dynamic>> acceptTenderBid(int bidId) async {
     final res = await _withAuth(
       (headers) => http.post(
@@ -1047,6 +1188,76 @@ class ApiService {
     );
     if (res.statusCode == 200) return jsonDecode(res.body);
     throw Exception(_errorFrom(res, 'Could not accept this bid.'));
+  }
+
+  /// Opens a Razorpay order for the confirmation fee owed on this tender.
+  ///
+  /// The amount comes back from the server, which worked it out from the bid
+  /// and the rate the admin set — the app never composes a fee of its own.
+  static Future<Map<String, dynamic>> createTenderConfirmationOrder(
+    int tenderId,
+  ) async {
+    final res = await _withAuth(
+      (headers) => http.post(
+        Uri.parse('$kApiBaseUrl/tenders/$tenderId/confirmation/'),
+        headers: headers,
+      ),
+    );
+    if (res.statusCode == 201) return jsonDecode(res.body);
+    throw Exception(_errorFrom(res, 'Could not start the payment.'));
+  }
+
+  /// Hands Checkout's three return values to the server, which verifies the
+  /// signature and confirms with Razorpay before awarding the tender.
+  static Future<Map<String, dynamic>> verifyTenderConfirmationPayment({
+    required String orderId,
+    required String paymentId,
+    required String signature,
+  }) async {
+    final body = jsonEncode({
+      'razorpay_order_id': orderId,
+      'razorpay_payment_id': paymentId,
+      'razorpay_signature': signature,
+    });
+    final res = await _withAuth(
+      (headers) => http.post(
+        Uri.parse('$kApiBaseUrl/tenders/confirmation/verify/'),
+        headers: headers,
+        body: body,
+      ),
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception(_errorFrom(res, 'Payment could not be verified.'));
+  }
+
+  /// The server's own view of the confirmation fee on this tender.
+  ///
+  /// The reconciliation path, exactly as for bookings: if verifying fails
+  /// because the network dropped, Razorpay's webhook still reaches the
+  /// server, so asking here a moment later gives the true answer without
+  /// anyone paying twice.
+  static Future<Map<String, dynamic>> getTenderConfirmationStatus(
+    int tenderId,
+  ) async {
+    final res = await _authorizedGet(
+      '$kApiBaseUrl/tenders/$tenderId/confirmation/',
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Could not check the payment status.');
+  }
+
+  /// Gives up a held choice without paying. The bid goes back in the pile and
+  /// the tender is open for bidding again.
+  static Future<void> releaseTenderSelection(int tenderId) async {
+    final res = await _withAuth(
+      (headers) => http.delete(
+        Uri.parse('$kApiBaseUrl/tenders/$tenderId/confirmation/'),
+        headers: headers,
+      ),
+    );
+    if (res.statusCode != 200) {
+      throw Exception(_errorFrom(res, 'Could not release your choice.'));
+    }
   }
 
   /// Records a milestone as settled. No money moves here — the payment
