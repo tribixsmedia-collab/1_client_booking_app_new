@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import '../services/map_config_service.dart';
 import '../utils/geocoding.dart';
 
 /// Result returned when the customer confirms a location.
@@ -16,32 +17,6 @@ class PickedLocation {
     required this.addressText,
   });
 }
-
-/// Basemap tiles, and the one thing to change if the map ever needs to look
-/// different again.
-///
-/// Esri's World Street Map, rather than the plain OpenStreetMap raster this
-/// used to draw: same roads, but a softer palette and far less label clutter,
-/// which is the whole reason the old map read as dated.
-///
-/// Two things make it a drop-in here. It needs no API key, so there is no
-/// billing account to keep alive, and it answers with
-/// `Access-Control-Allow-Origin: *`, so the identical URL works in the web
-/// build instead of failing CORS. Note the {z}/{y}/{x} order -- Esri puts row
-/// before column, the opposite of the usual slippy-map convention.
-///
-/// If tile usage ever outgrows a public endpoint, MapTiler and Stadia both
-/// serve raster URLs of the same shape once `?key=...` is appended, so
-/// switching is a change to this string and the attribution below.
-const _tileUrlTemplate =
-    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-
-// 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map'
-// '/MapServer/tile/{z}/{y}/{x}';
-
-/// Required by the tile licence, and it has to stay visible on the map.
-const _tileAttribution = '© OpenStreetMap contributors © CARTO';
-// 'Esri, HERE, Garmin, OpenStreetMap contributors';
 
 /// Map screen where the customer fine-tunes their exact location.
 /// Flow: opens centered on GPS -> customer can drag the MAP underneath a
@@ -68,7 +43,17 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   @override
   void initState() {
     super.initState();
+    // Ask what to draw every time the screen opens rather than only at
+    // launch: the admin may have switched provider since, and on the Google
+    // setting the tile URL carries a session token Google expires after about
+    // two weeks, which a long-installed app would otherwise draw blank with.
+    MapConfigService.revision.addListener(_onMapConfigChanged);
+    MapConfigService.refresh();
     _goToCurrentLocation();
+  }
+
+  void _onMapConfigChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _goToCurrentLocation() async {
@@ -112,10 +97,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     }
   }
 
-  /// Converts lat/long -> a readable address using OpenStreetMap's free
-  /// Nominatim service. This is a courtesy auto-fill -- the customer can
-  /// always edit the text field manually if it's not accurate enough
-  /// (e.g. doesn't know the flat/floor number).
+  /// Converts lat/long -> a readable address, through whichever geocoder the
+  /// admin picked in the dashboard. This is a courtesy auto-fill -- the
+  /// customer can always edit the text field manually if it's not accurate
+  /// enough (e.g. doesn't know the flat/floor number).
   Future<void> _reverseGeocode(LatLng point) async {
     setState(() => _isLoadingAddress = true);
     try {
@@ -153,6 +138,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
   @override
   void dispose() {
+    MapConfigService.revision.removeListener(_onMapConfigChanged);
     _addressController.dispose();
     super.dispose();
   }
@@ -181,16 +167,26 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: _tileUrlTemplate,
+                      // Whichever basemap the admin picked in the dashboard.
+                      // On the Google setting the URL already carries the Map
+                      // Tiles session token and key.
+                      urlTemplate: MapConfigService.tileUrl,
+                      subdomains: MapConfigService.subdomains,
+                      maxNativeZoom: MapConfigService.maxZoom.round(),
                       userAgentPackageName: 'com.homeservice.customer_app',
-                      // Esri serves no @2x tiles, so ask flutter_map to
+                      // Providers that serve no @2x tiles need flutter_map to
                       // simulate: on a high-density screen it draws one zoom
                       // level out at double size, which keeps roads and labels
                       // the right physical size instead of hairline-thin.
-                      retinaMode: RetinaMode.isHighDensity(context),
+                      // Google's session already asks for 2x tiles, so there
+                      // it says not to.
+                      retinaMode: MapConfigService.retinaTiles &&
+                          RetinaMode.isHighDensity(context),
                     ),
-                    const RichAttributionWidget(
-                      attributions: [TextSourceAttribution(_tileAttribution)],
+                    RichAttributionWidget(
+                      attributions: [
+                        TextSourceAttribution(MapConfigService.attribution),
+                      ],
                     ),
                   ],
                 ),
