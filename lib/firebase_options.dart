@@ -70,32 +70,34 @@ class DefaultFirebaseOptions {
     storageBucket: 'rni-home-services.firebasestorage.app',
   );
 
-  // STILL THE OLD PROJECT. Android has moved to the client's Firebase project
-  // (rni-home-services); iOS has not, because its GoogleService-Info.plist has
-  // not been issued yet. Replace all six values from that file when it arrives.
-  //
-  // Nothing is broken by this today -- an iOS build needs a Mac, which is not
-  // set up yet, so this path is unreachable. It is only dangerous the moment
-  // someone does build for iPhone: push would silently register against a
-  // Firebase project the client does not own, and no notification the backend
-  // sends would ever arrive.
+  // These values, not ios/Runner/GoogleService-Info.plist, are what actually
+  // configure Firebase here: main.dart calls initializeApp with
+  // DefaultFirebaseOptions.currentPlatform. The plist sits alongside them for
+  // the Firebase iOS SDK's own use and must still be added to the Runner
+  // target in Xcode -- it is on disk but not yet referenced by the project,
+  // which cannot be done from Windows. See ios/README-firebase.md.
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCjplCQd9VkhksKszwsA3dsQQtt9MoK-64',
-    appId: '1:879153194201:ios:48297e3afca3c9b1bbcac8',
-    messagingSenderId: '879153194201',
-    projectId: 'prohome-8f3c8',
-    storageBucket: 'prohome-8f3c8.firebasestorage.app',
+    apiKey: 'AIzaSyCyisgCYmXFDGVGkRFk-FphwJyMuIBTvLY',
+    appId: '1:392326867102:ios:30818f2f0637bdcb42f38f',
+    messagingSenderId: '392326867102',
+    projectId: 'rni-home-services',
+    storageBucket: 'rni-home-services.firebasestorage.app',
     iosBundleId: 'com.rniservices.customer',
   );
 
-  /// Placeholder. Replace every value with the ones from your Firebase console
-  /// Web app, then set [webConfigured] to `true`.
+  /// Placeholder. Register a **Web** app in the Firebase console
+  /// (rni-home-services), paste its two values below, and set [webConfigured]
+  /// to `true`. Browser push additionally needs the Web Push certificate key
+  /// pair in `PushService.webVapidKey`.
+  ///
+  /// The four non-placeholder values below already point at the client's
+  /// project, so only the two marked PASTE_ need filling in.
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'PASTE_WEB_API_KEY',
     appId: 'PASTE_WEB_APP_ID',
-    messagingSenderId: '879153194201',
-    projectId: 'prohome-8f3c8',
-    authDomain: 'prohome-8f3c8.firebaseapp.com',
-    storageBucket: 'prohome-8f3c8.firebasestorage.app',
+    messagingSenderId: '392326867102',
+    projectId: 'rni-home-services',
+    authDomain: 'rni-home-services.firebaseapp.com',
+    storageBucket: 'rni-home-services.firebasestorage.app',
   );
 }
