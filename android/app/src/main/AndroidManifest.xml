@@ -3,7 +3,7 @@
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application
-        android:label="Pro Home"
+        android:label="RNI Services"
         android:usesCleartextTraffic="true"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
