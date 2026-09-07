@@ -34,8 +34,12 @@ names, but a file that is not in the working tree cannot be committed by
 accident at all.
 
 ```
-keytool -genkey -v -keystore C:\keys\rni-customer-upload.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+keytool -genkey -v -keystore C:\keys\rni-customer-upload.jks -storetype PKCS12 -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 ```
+
+`-storetype PKCS12` is the modern standard; `keytool` prints a "proprietary
+format" warning for the older JKS. Both work for Android, PKCS12 just does not
+nag.
 
 `-validity 10000` is about 27 years. Play requires a key valid past 2033, and
 an expired key has the same consequence as a lost one.
