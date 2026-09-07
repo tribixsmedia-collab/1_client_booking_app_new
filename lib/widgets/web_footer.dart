@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../screens/refer_earn_screen.dart';
 import '../screens/support_screen.dart';
 import '../utils/breakpoints.dart';
+import '../utils/legal_links.dart';
 import '../utils/profile_gate.dart';
 import 'app_logo.dart';
 import '../services/branding_service.dart';
@@ -63,9 +64,16 @@ class WebFooter extends StatelessWidget {
                     ),
                     Expanded(
                       flex: 3,
-                      child: _column('Legal', const [
-                        _FooterLink('Terms of Service', null),
-                        _FooterLink('Privacy Policy', null),
+                      child: _column('Legal', [
+                        _FooterLink('Terms of Service', () {
+                          LegalLinks.open(context, LegalLinks.terms);
+                        }),
+                        _FooterLink('Privacy Policy', () {
+                          LegalLinks.open(context, LegalLinks.privacy);
+                        }),
+                        _FooterLink('Delete my data', () {
+                          LegalLinks.open(context, LegalLinks.dataDeletion);
+                        }),
                       ]),
                     ),
                   ],
@@ -151,7 +159,9 @@ class _FooterLink extends StatelessWidget {
   final String label;
 
   /// Null renders plain text rather than something that looks clickable but
-  /// is not — these documents do not exist as screens yet.
+  /// is not. Nothing passes null today — the legal links used to, before the
+  /// backend served those pages — but the guard stays so a future entry cannot
+  /// silently become a dead end.
   final VoidCallback? onTap;
 
   @override

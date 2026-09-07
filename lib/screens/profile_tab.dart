@@ -4,6 +4,7 @@ import '../config.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/sign_in_prompt.dart';
+import '../utils/legal_links.dart';
 import '../utils/location_update.dart';
 import '../widgets/refer_banner.dart';
 import 'phone_entry_screen.dart';
@@ -382,6 +383,25 @@ class ProfileTabState extends State<ProfileTab> {
             icon: Icons.headset_mic_outlined,
             label: 'Help & support',
             onTap: () => _open(const SupportScreen()),
+          ),
+          // Google Play requires the privacy policy and a route to request
+          // account deletion to be reachable from inside the app, not only
+          // from the store listing. They open in a browser so the address bar
+          // shows the real domain.
+          _MenuRow(
+            icon: Icons.description_outlined,
+            label: 'Terms of Service',
+            onTap: () => LegalLinks.open(context, LegalLinks.terms),
+          ),
+          _MenuRow(
+            icon: Icons.privacy_tip_outlined,
+            label: 'Privacy Policy',
+            onTap: () => LegalLinks.open(context, LegalLinks.privacy),
+          ),
+          _MenuRow(
+            icon: Icons.delete_outline_rounded,
+            label: 'Delete my account',
+            onTap: () => LegalLinks.open(context, LegalLinks.dataDeletion),
           ),
         ],
       ),
