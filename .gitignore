@@ -43,3 +43,13 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Release signing. NEVER commit these.
+#
+# key.properties holds the keystore passwords in plain text, and the .jks is
+# the upload key itself -- the thing that proves to Google Play that an update
+# genuinely came from us. See android/README-signing.md.
+key.properties
+android/key.properties
+*.jks
+*.keystore
