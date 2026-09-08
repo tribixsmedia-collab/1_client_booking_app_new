@@ -1,6 +1,8 @@
 import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/api_service.dart';
+import '../utils/plus_code.dart';
 import '../theme.dart';
 import 'pro_vendor_detail_screen.dart';
 import '../widgets/booking_timeline.dart';
@@ -158,6 +160,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final district = _booking['address_district'] ?? '';
     final pincode = _booking['address_pincode'] ?? '';
     final phone = _booking['customer_phone'] ?? '';
+    // The backend sends this, computed from the booking's pin. Falling back to
+    // computing it here covers a booking fetched from an older backend, and
+    // costs nothing -- it is the same arithmetic on the same two numbers.
+    final plusCode = ('${_booking['plus_code'] ?? ''}'.isNotEmpty)
+        ? '${_booking['plus_code']}'
+        : plusCodeFor(
+            double.tryParse('${_booking['location_lat']}'),
+            double.tryParse('${_booking['location_lng']}'),
+          );
     final amount = _booking['amount'] ?? '0';
     final paymentStatus = _booking['payment_status'] ?? 'PENDING';
     final servicesJson = _booking['services_json'] as List<dynamic>? ?? [];
@@ -294,6 +305,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   if (pincode.isNotEmpty) pincode,
                 ].join(', '),
               ),
+            if (plusCode.isNotEmpty)
+              _PlusCodeRow(code: plusCode),
             if (phone.isNotEmpty)
               _InfoRow(icon: Icons.phone, label: 'Phone', value: phone),
             if (notes.isNotEmpty)
@@ -551,6 +564,61 @@ class _InfoRow extends StatelessWidget {
           ),
           Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),
         ],
+      ),
+    );
+  }
+}
+
+/// The booking's Plus Code, with a tap to copy it.
+///
+/// Sits under the address because it is the half of the address that actually
+/// resolves: plenty of the lanes this app sends vendors down have no name, and
+/// a code pasted into any maps app lands on the doorway rather than the
+/// neighbourhood. The full form is shown and copied -- the short one means
+/// nothing once you are reading it in a different town.
+class _PlusCodeRow extends StatelessWidget {
+  final String code;
+
+  const _PlusCodeRow({required this.code});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () async {
+        await Clipboard.setData(ClipboardData(text: code));
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Copied $code')),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.pin_drop_outlined,
+                size: 18, color: AppColors.textGrey),
+            const SizedBox(width: 10),
+            const SizedBox(
+              width: 70,
+              child: Text(
+                'Plus Code',
+                style: TextStyle(color: AppColors.textGrey, fontSize: 13),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                code,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+            const Icon(Icons.copy_outlined, size: 16, color: AppColors.textGrey),
+          ],
+        ),
       ),
     );
   }
