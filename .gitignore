@@ -53,3 +53,8 @@ key.properties
 android/key.properties
 *.jks
 *.keystore
+
+# Built web bundle. 16 MB of generated output, rebuilt by build_web.sh on
+# demand and pinned to whatever API host it was built against -- a stale one
+# in the repo would be worse than none.
+homeservice-web.tar.gz

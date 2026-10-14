@@ -1,0 +1,48 @@
+# Apache / LiteSpeed config for hosts that are not nginx -- Hostinger, cPanel
+# shared hosting and most similar. On the AWS box nginx does this instead; see
+# home_service_backend/deploy/nginx-web.conf.
+#
+# This file sits in web/ so Flutter copies it into build/web automatically on
+# every build. Upload the CONTENTS of build/web to public_html.
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Flutter web is a single page app. The browser asks for /services or
+  # /booking/42 and the server must still answer with index.html, because the
+  # routing happens inside the app. Without this the first load works and every
+  # refresh or shared link gives a 404 -- a bug nobody sees until someone sends
+  # a link to someone else.
+  #
+  # Real files and directories are served normally; everything else falls back.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  # These three are how a browser finds out a new version exists. Cache them and
+  # a returning visitor keeps running the old app after every deploy, with no
+  # way to get the new one short of clearing their browser data.
+  <FilesMatch "^(index\.html|flutter_service_worker\.js|version\.json)$">
+    Header set Cache-Control "no-store, must-revalidate"
+  </FilesMatch>
+
+  # Build assets carry a content hash in their name, so a given name always
+  # holds the same bytes and is safe to cache hard.
+  <FilesMatch "\.(js|css|png|jpe?g|gif|svg|webp|woff2?|ttf|otf|ico|wasm)$">
+    Header set Cache-Control "public, max-age=2592000, immutable"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain
+  AddOutputFilterByType DEFLATE application/javascript application/json
+  AddOutputFilterByType DEFLATE image/svg+xml application/wasm
+</IfModule>
+
+# Some shared hosts do not know this type, and the app fails to start without
+# it on browsers that use the wasm build.
+<IfModule mod_mime.c>
+  AddType application/wasm .wasm
+</IfModule>
