@@ -220,7 +220,7 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(6),
                   child: LinearProgressIndicator(
                     value: progress,
                     backgroundColor: Colors.grey.shade200,
@@ -554,7 +554,7 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
                               vertical: 12,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                         )
@@ -569,7 +569,7 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
                               vertical: 12,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                         ),
@@ -596,7 +596,7 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
                             vertical: 12,
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                       ),

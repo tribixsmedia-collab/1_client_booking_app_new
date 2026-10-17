@@ -41,7 +41,7 @@ class _SupportScreenState extends State<SupportScreen> {
       case 'OPEN':
         return Colors.orange;
       case 'IN_PROGRESS':
-        return Colors.blue;
+        return AppColors.info;
       case 'RESOLVED':
         return Colors.green;
       default:

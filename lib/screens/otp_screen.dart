@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../theme.dart';
 import '../services/api_service.dart';
 import '../widgets/form_width.dart';
 import 'main_navigation_screen.dart';
@@ -170,15 +171,15 @@ class _OtpScreenState extends State<OtpScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(20),
+                      color: AppColors.primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
                       '+91 ${widget.phoneNumber}',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Colors.blue,
+                        color: AppColors.primary,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -220,7 +221,7 @@ class _OtpScreenState extends State<OtpScreen> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: const BorderSide(
-                        color: Colors.blue,
+                        color: AppColors.primary,
                         width: 1.5,
                       ),
                     ),
@@ -259,7 +260,7 @@ class _OtpScreenState extends State<OtpScreen> {
                             width: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.blue,
+                              color: AppColors.primary,
                             ),
                           )
                         : Text(
@@ -271,7 +272,7 @@ class _OtpScreenState extends State<OtpScreen> {
                               fontWeight: FontWeight.w600,
                               color: _resendCooldown > 0
                                   ? Colors.grey[400]
-                                  : Colors.blue,
+                                  : AppColors.primary,
                             ),
                           ),
                   ),
@@ -410,11 +411,11 @@ class _OtpScreenState extends State<OtpScreen> {
                   child: ElevatedButton(
                     onPressed: _isVerifying ? null : _verify,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       textStyle: const TextStyle(
                         fontSize: 16,
@@ -469,7 +470,7 @@ class _OtpScreenState extends State<OtpScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.blue, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 12,

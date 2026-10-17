@@ -30,3 +30,12 @@ const String kApiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
   defaultValue: "http://192.168.1.9:8000/api",
 );
+
+/// The wordmark shown when the backend has no branding set.
+///
+/// An admin can override the name (and the logo) from the dashboard's
+/// branding screen; this is only what the app falls back to when that call
+/// returns nothing, which is what happens today. Keep it in one place --
+/// it was previously spelled out at every call site, so the header, footer
+/// and splash could drift apart.
+const String kAppName = 'RNI Services';

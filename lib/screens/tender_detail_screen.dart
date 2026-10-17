@@ -470,7 +470,7 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
                   padding: const EdgeInsets.all(11),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${tender['rejection_reason']}',
@@ -883,7 +883,7 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
                       '${update['percent_complete']}%',
@@ -915,7 +915,7 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
                   itemCount: (update['photos'] as List).length,
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (context, index) => ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     child: Image.network(
                       '${update['photos'][index]['image']}',
                       width: 76,

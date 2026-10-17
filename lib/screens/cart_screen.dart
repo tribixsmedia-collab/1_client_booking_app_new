@@ -991,7 +991,7 @@ class _CouponInputState extends State<_CouponInput> {
         decoration: BoxDecoration(
           color: Colors.green.shade50,
           border: Border.all(color: Colors.green.shade300),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
@@ -1023,7 +1023,7 @@ class _CouponInputState extends State<_CouponInput> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: [
@@ -1068,7 +1068,7 @@ class _CouponInputState extends State<_CouponInput> {
                 }),
               ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 12,

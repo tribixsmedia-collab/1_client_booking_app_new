@@ -328,7 +328,7 @@ class _HomeTabState extends State<HomeTab> {
           ),
           decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -337,13 +337,10 @@ class _HomeTabState extends State<HomeTab> {
                 padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'All Services',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: displayHeading(size: 20),
                       ),
                     ),
                     IconButton(
@@ -396,10 +393,10 @@ class _HomeTabState extends State<HomeTab> {
                                     height: 70,
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(14),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(14),
+                                      borderRadius: BorderRadius.circular(12),
                                       child:
                                           cat['icon'] != null &&
                                               (cat['icon'] as String).isNotEmpty
@@ -538,7 +535,7 @@ class _HomeTabState extends State<HomeTab> {
           ),
           decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -645,11 +642,10 @@ class _HomeTabState extends State<HomeTab> {
             BrandingService.tagline?.isNotEmpty == true
                 ? BrandingService.tagline!
                 : 'Services at your doorstep',
-            style: const TextStyle(
-              fontSize: 36,
-              height: 1.22,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textDark,
+            style: displayHeading(
+              size: 36,
+              weight: FontWeight.w800,
+              height: 1.18,
             ),
           ),
         ),
@@ -657,7 +653,7 @@ class _HomeTabState extends State<HomeTab> {
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           child: Column(
@@ -762,7 +758,7 @@ class _HomeTabState extends State<HomeTab> {
       return GestureDetector(
         onTap: () => _onBannerTap(Map<String, dynamic>.from(banner)),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           child: SizedBox(
             height: height,
             width: double.infinity,
@@ -1011,10 +1007,7 @@ class _HomeTabState extends State<HomeTab> {
               if (!desktop) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    'All Services',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                  child: Text('All Services', style: displayHeading(size: 18)),
                 ),
                 const SizedBox(height: 12),
 

@@ -77,10 +77,7 @@ class HomeSectionsWidget extends StatelessWidget {
                         children: [
                           Text(
                             section['title'] ?? '',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: displayHeading(size: 18),
                           ),
                           if ((section['subtitle'] as String?)?.isNotEmpty ??
                               false)

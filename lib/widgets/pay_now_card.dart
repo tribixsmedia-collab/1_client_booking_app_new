@@ -95,12 +95,12 @@ class _PayNowCardState extends State<PayNowCard> {
   Widget build(BuildContext context) {
     if (_pendingMessage != null) {
       return _Panel(
-        background: const Color(0xFFFFF8E1),
-        border: const Color(0xFFFFE082),
+        background: AppColors.accentSoft,
+        border: const Color(0xFFFDE68A),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.schedule, color: Color(0xFFF57C00), size: 20),
+            const Icon(Icons.schedule, color: AppColors.accentDark, size: 20),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -198,7 +198,7 @@ class _Panel extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: border),
       ),
       child: child,

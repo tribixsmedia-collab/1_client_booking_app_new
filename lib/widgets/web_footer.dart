@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../config.dart';
+import '../theme.dart';
 
 import '../screens/refer_earn_screen.dart';
 import '../screens/support_screen.dart';
@@ -25,7 +27,7 @@ class WebFooter extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: const Color(0xFF16162A),
+      color: AppColors.primaryDark,
       padding: const EdgeInsets.symmetric(vertical: 44),
       child: Center(
         child: ConstrainedBox(
@@ -83,7 +85,7 @@ class WebFooter extends StatelessWidget {
                 const SizedBox(height: 18),
                 Text(
                   '© ${DateTime.now().year} '
-                  '${BrandingService.appName ?? 'Home Service'}',
+                  '${BrandingService.appName ?? kAppName}',
                   style: TextStyle(
                     fontSize: 12.5,
                     color: Colors.white.withValues(alpha: 0.55),
@@ -108,7 +110,7 @@ class WebFooter extends StatelessWidget {
               const AppLogo(size: 34),
               const SizedBox(width: 10),
               Text(
-                BrandingService.appName ?? 'Home Service',
+                BrandingService.appName ?? kAppName,
                 style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,

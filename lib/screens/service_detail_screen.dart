@@ -585,9 +585,9 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF8E1),
+            color: AppColors.accentSoft,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFFFE0A3)),
+            border: Border.all(color: const Color(0xFFFDE68A)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -595,7 +595,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
               const Icon(
                 Icons.location_off_outlined,
                 size: 20,
-                color: Color(0xFFE65100),
+                color: AppColors.accentDark,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -607,7 +607,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF7A3E00),
+                        color: Color(0xFF78350F),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -617,7 +617,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       style: const TextStyle(
                         fontSize: 12.5,
                         height: 1.4,
-                        color: Color(0xFF7A3E00),
+                        color: Color(0xFF78350F),
                       ),
                     ),
                   ],

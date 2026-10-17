@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme.dart';
 import '../services/api_service.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/form_width.dart';
@@ -152,22 +153,22 @@ class _PhoneEntryScreenState extends State<PhoneEntryScreen> {
                       filled: true,
                       fillColor: Colors.grey[50],
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                          color: Colors.blue,
+                          color: AppColors.primary,
                           width: 1.5,
                         ),
                       ),
                       errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
                           color: Colors.red,
                           width: 1.5,
@@ -220,11 +221,11 @@ class _PhoneEntryScreenState extends State<PhoneEntryScreen> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _sendOtp,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         textStyle: const TextStyle(
                           fontSize: 16,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme.dart';
 
 /// One notification as returned by GET /api/notifications/
 class AppNotification {
@@ -81,17 +82,17 @@ class AppNotification {
   Color get accent {
     switch (category) {
       case 'BOOKING':
-        return const Color(0xFF2563EB);
+        return AppColors.info;
       case 'PAYMENT':
-        return const Color(0xFF059669);
+        return AppColors.success;
       case 'PROMO':
-        return const Color(0xFFEA580C);
+        return AppColors.accentDark;
       case 'REVIEW':
-        return const Color(0xFFCA8A04);
+        return AppColors.accent;
       case 'ACCOUNT':
-        return const Color(0xFF7C3AED);
+        return AppColors.primary;
       default:
-        return const Color(0xFF64748B);
+        return AppColors.textGrey;
     }
   }
 

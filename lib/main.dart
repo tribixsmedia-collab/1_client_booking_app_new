@@ -65,7 +65,7 @@ class CustomerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Home Service',
+      title: kAppName,
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       navigatorKey: navigatorKey,

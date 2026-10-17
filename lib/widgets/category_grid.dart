@@ -26,10 +26,10 @@ class CategoryCard extends StatelessWidget {
             height: 70,
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
               child: iconUrl != null && iconUrl!.isNotEmpty
                   ? Image.network(
                       iconUrl!,
@@ -83,7 +83,7 @@ class MoreCard extends StatelessWidget {
             height: 70,
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
               Icons.grid_view_rounded,

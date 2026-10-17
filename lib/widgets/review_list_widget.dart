@@ -87,7 +87,7 @@ class ReviewListWidget extends StatelessWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: BorderRadius.circular(6),
                                 child: LinearProgressIndicator(
                                   value: fraction,
                                   backgroundColor: Colors.grey.shade200,

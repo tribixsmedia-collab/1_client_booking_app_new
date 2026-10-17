@@ -112,7 +112,7 @@ class _NavPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(30),
+      borderRadius: BorderRadius.circular(999),
       child: AnimatedContainer(
         duration: _duration,
         curve: _curve,
@@ -124,7 +124,7 @@ class _NavPill extends StatelessWidget {
           color: isActive
               ? AppColors.primary.withValues(alpha: 0.12)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(999),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

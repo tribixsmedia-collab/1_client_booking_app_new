@@ -154,7 +154,7 @@ class ProfileTabState extends State<ProfileTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F0F3),
+      backgroundColor: AppColors.surfaceAlt,
       body: DesktopCentered(
         maxWidth: kDesktopFormWidth,
         child: !_signedIn
@@ -231,7 +231,7 @@ class ProfileTabState extends State<ProfileTab> {
                   ),
                   decoration: BoxDecoration(
                     color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(999),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -259,7 +259,7 @@ class ProfileTabState extends State<ProfileTab> {
                       vertical: 12,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(

@@ -334,7 +334,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 vertical: 2,
               ),
               leading: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
                 child: Container(
                   width: 44,
                   height: 44,
@@ -413,7 +413,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 vertical: 2,
               ),
               leading: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
                 child: Container(
                   width: 44,
                   height: 44,

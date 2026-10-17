@@ -62,7 +62,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
       case 'ASSIGNED':
         return _StatusStyle(
           'Assigned',
-          Colors.blue.shade700,
+          AppColors.info,
           Icons.person_pin_circle_outlined,
         );
       case 'IN_PROGRESS':
@@ -229,7 +229,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
               ),
 
               const SizedBox(height: 14),
-              const Divider(height: 1, color: Color(0xFFEFEFF4)),
+              const Divider(height: 1, color: AppColors.border),
               const SizedBox(height: 14),
 
               _detailRow(
@@ -288,7 +288,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: style.color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -382,7 +382,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                     padding: const EdgeInsets.all(20),
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Color(0xFFEDE7F6),
+                      color: Color(0xFFF0FDFA),
                     ),
                     child: Icon(icon, size: 34, color: AppColors.primary),
                   ),

@@ -341,7 +341,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                   color: _latitude != null
                       ? Colors.green.shade50
                       : Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: _latitude != null
                         ? Colors.green.shade200

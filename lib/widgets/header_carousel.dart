@@ -110,7 +110,7 @@ class _HeaderCarouselState extends State<HeaderCarousel> {
                               color: Colors.white.withValues(
                                 alpha: isActive ? 0.95 : 0.45,
                               ),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                           );
                         }),

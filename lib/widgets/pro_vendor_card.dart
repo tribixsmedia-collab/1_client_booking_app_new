@@ -187,7 +187,7 @@ class ProVendorCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(Icons.star_rounded,
-                          size: 15, color: Color(0xFFFFB300)),
+                          size: 15, color: AppColors.accent),
                       const SizedBox(width: 3),
                       Text(
                         rating.toStringAsFixed(1),
@@ -338,7 +338,7 @@ class ProVendorListTile extends StatelessWidget {
                     children: [
                       if (reviews > 0) ...[
                         const Icon(Icons.star_rounded,
-                            size: 15, color: Color(0xFFFFB300)),
+                            size: 15, color: AppColors.accent),
                         const SizedBox(width: 3),
                         Text(
                           '${rating.toStringAsFixed(1)} ($reviews)',
@@ -379,7 +379,7 @@ class ProVendorListTile extends StatelessWidget {
                     vertical: 8,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: Text(

@@ -127,7 +127,7 @@ class _WebTopNavState extends State<WebTopNav> {
               const AppLogo(size: 36),
               const SizedBox(width: 10),
               Text(
-                BrandingService.appName ?? 'Home Service',
+                BrandingService.appName ?? kAppName,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -168,13 +168,13 @@ class _WebTopNavState extends State<WebTopNav> {
       constraints: const BoxConstraints(maxWidth: 230),
       child: InkWell(
         onTap: _changeLocation,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           height: 42,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: [
@@ -214,13 +214,13 @@ class _WebTopNavState extends State<WebTopNav> {
         onTap: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const SearchScreen())),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           height: 42,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: [
@@ -246,7 +246,7 @@ class _WebTopNavState extends State<WebTopNav> {
       onTap: () => Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => const CartScreen())),
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(999),
       child: Padding(
         padding: const EdgeInsets.all(8),
         child: Stack(
@@ -299,7 +299,7 @@ class _WebTopNavState extends State<WebTopNav> {
           side: const BorderSide(color: AppColors.primary),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
         child: const Text(

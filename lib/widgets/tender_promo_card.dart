@@ -24,7 +24,7 @@ class TenderPromoCard extends StatelessWidget {
     return Padding(
       padding: padding,
       child: Material(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => Navigator.of(
@@ -46,7 +46,7 @@ class TenderPromoCard extends StatelessWidget {
                     padding: const EdgeInsets.all(11),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       Icons.gavel_rounded,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme.dart';
 import 'package:intl/intl.dart';
 
 /// Formatting and status styling shared by every tender screen, so a status
@@ -104,14 +105,14 @@ TenderStatusStyle tenderStatusStyle(String? status) {
     case 'OPEN':
       return TenderStatusStyle(
         'Open for bids',
-        Colors.blue.shade700,
+        AppColors.info,
         Icons.campaign_rounded,
         'Vendors can see this and are sending their quotes.',
       );
     case 'PENDING_CONFIRMATION':
       return TenderStatusStyle(
         'Awaiting confirmation',
-        Colors.amber.shade800,
+        AppColors.accentDark,
         Icons.lock_clock_rounded,
         'Your vendor is held for you. Pay the confirmation fee to lock '
             'them in — nothing is awarded until you do.',
@@ -119,21 +120,21 @@ TenderStatusStyle tenderStatusStyle(String? status) {
     case 'AWARDED':
       return TenderStatusStyle(
         'Awarded',
-        Colors.indigo.shade600,
+        AppColors.primary,
         Icons.handshake_rounded,
         'Deal confirmed. Your vendor will start shortly.',
       );
     case 'IN_PROGRESS':
       return TenderStatusStyle(
         'Work in progress',
-        Colors.purple.shade600,
+        AppColors.primaryMid,
         Icons.construction_rounded,
         'Work is under way. Watch the updates below.',
       );
     case 'COMPLETED':
       return TenderStatusStyle(
         'Completed',
-        Colors.green.shade700,
+        AppColors.success,
         Icons.check_circle_outline_rounded,
         'Finished. Tell us how it went.',
       );
@@ -171,7 +172,7 @@ class TenderStatusPill extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: style.color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

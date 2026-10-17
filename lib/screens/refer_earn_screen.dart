@@ -207,7 +207,7 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
               ),
               _ShareButton(
                 icon: Icons.link,
-                color: const Color(0xFF2563EB),
+                color: AppColors.primary,
                 label: 'Copy',
                 onTap: () => _copy(_shareMessage, 'Invite message'),
               ),
@@ -226,7 +226,7 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey.shade300),
         ),
         child: Row(
@@ -277,7 +277,7 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: AppColors.primary.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -386,7 +386,7 @@ class _ShareButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(40),
+      borderRadius: BorderRadius.circular(999),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Column(
@@ -500,7 +500,7 @@ class _ReferralRow extends StatelessWidget {
               color: isPending
                   ? Colors.grey.shade100
                   : Colors.green.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
               isPending

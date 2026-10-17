@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme.dart';
 import '../services/api_service.dart';
 
 /// The gate in front of adding a service to the cart: does anybody actually
@@ -52,7 +53,7 @@ Future<void> showZoneBlockedDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: const Row(
         children: [
-          Icon(Icons.location_off_outlined, color: Color(0xFFE65100)),
+          Icon(Icons.location_off_outlined, color: AppColors.accentDark),
           SizedBox(width: 8),
           Expanded(child: Text('No vendor in your zone')),
         ],

@@ -716,7 +716,7 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.orange.shade200),
       ),
       child: Column(
@@ -1057,7 +1057,7 @@ class _CreateTenderScreenState extends State<CreateTenderScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         child: InputDecorator(
           decoration: InputDecoration(labelText: label),
           child: Row(

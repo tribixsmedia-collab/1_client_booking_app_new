@@ -262,7 +262,7 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                                           const Icon(
                                             Icons.star_rounded,
                                             size: 15,
-                                            color: Color(0xFFFFB300),
+                                            color: AppColors.accent,
                                           ),
                                           const SizedBox(width: 2),
                                           Text(
@@ -318,7 +318,7 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                             Column(
                               children: [
                                 ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(12),
                                   child: Container(
                                     width: 90,
                                     height: 80,

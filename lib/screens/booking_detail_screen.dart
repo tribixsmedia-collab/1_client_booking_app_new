@@ -91,9 +91,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       case 'PENDING':
         return Colors.orange;
       case 'ASSIGNED':
-        return Colors.blue;
+        return AppColors.info;
       case 'IN_PROGRESS':
-        return Colors.purple;
+        return AppColors.primary;
       case 'COMPLETED':
         return Colors.green;
       case 'CANCELLED':
@@ -190,7 +190,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: _statusColor(status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     status.replaceAll('_', ' '),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme.dart';
 import '../config.dart';
 import '../services/api_service.dart';
 import '../services/branding_service.dart';
@@ -93,11 +94,11 @@ class _SplashScreenState extends State<SplashScreen>
                       const AppLogo(size: 180),
                       const SizedBox(height: 24),
                       Text(
-                        BrandingService.appName ?? 'Home Service',
+                        BrandingService.appName ?? kAppName,
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF6A1B9A),
+                          color: AppColors.primaryDark,
                           letterSpacing: 1,
                         ),
                       ),

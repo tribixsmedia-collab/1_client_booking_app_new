@@ -38,10 +38,7 @@ class PersonalizedRow extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: displayHeading(size: 18),
                 ),
                 if (subtitle.isNotEmpty)
                   Text(

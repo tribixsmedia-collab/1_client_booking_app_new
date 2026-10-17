@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme.dart';
 
 import '../utils/image_decode.dart';
 
@@ -31,7 +32,7 @@ class PromoCardTile extends StatelessWidget {
     final buttonText = (card['button_text'] as String?) ?? 'Book now';
     final badgeColor = _parseHex(
       card['badge_color'] as String?,
-      const Color(0xFF9C1458),
+      AppColors.primaryDark,
     );
 
     return Padding(
@@ -149,7 +150,7 @@ class PromoCardTile extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               buttonText,

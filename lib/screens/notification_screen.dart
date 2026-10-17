@@ -1,5 +1,6 @@
 import '../utils/breakpoints.dart';
 import 'package:flutter/material.dart';
+import '../theme.dart';
 
 import '../models/app_notification.dart';
 import '../services/notification_service.dart';
@@ -225,7 +226,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final unread = _items.where((n) => !n.isRead).length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F5),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
@@ -243,7 +244,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
                   '$unread',
@@ -324,7 +325,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   color: selected
                       ? theme.colorScheme.primary
                       : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(999),
                   border: Border.all(
                     color: selected
                         ? theme.colorScheme.primary
@@ -468,7 +469,7 @@ class _NotificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final radius = BorderRadius.circular(14);
+    final radius = BorderRadius.circular(12);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
@@ -482,7 +483,7 @@ class _NotificationCard extends StatelessWidget {
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.symmetric(horizontal: 22),
           decoration: BoxDecoration(
-            color: const Color(0xFFE24B4A),
+            color: AppColors.danger,
             borderRadius: radius,
           ),
           child: const Row(
@@ -527,7 +528,7 @@ class _NotificationCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: note.accent,
                           borderRadius: const BorderRadius.horizontal(
-                            left: Radius.circular(14),
+                            left: Radius.circular(12),
                           ),
                         ),
                       ),
@@ -706,7 +707,7 @@ class _EmptyState extends StatelessWidget {
                     vertical: 13,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: Text(actionLabel!),

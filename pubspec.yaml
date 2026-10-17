@@ -44,6 +44,34 @@ flutter:
   assets:
     - assets/logo.png
 
+  # Brand typefaces, matched to the RNI Realestate web identity:
+  # Manrope for every UI/body string, Playfair Display for display headings.
+  # Bundled rather than fetched at runtime so the web build has no font
+  # flash and the mobile builds work with no network.
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Manrope-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Manrope-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Manrope-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Manrope-ExtraBold.ttf
+          weight: 800
+    - family: Playfair Display
+      fonts:
+        - asset: assets/fonts/PlayfairDisplay-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/PlayfairDisplay-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/PlayfairDisplay-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/PlayfairDisplay-ExtraBold.ttf
+          weight: 800
+
 # This MUST be at root level, NOT inside flutter:
 # flutter_native_splash:
 #   color: "#FFFFFF"

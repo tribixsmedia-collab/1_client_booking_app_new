@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme.dart';
 import '../utils/image_decode.dart';
 
 class SpotlightSection extends StatelessWidget {
@@ -22,9 +23,7 @@ class SpotlightSection extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Text(
             'In the spotlight',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: displayHeading(size: 18),
           ),
         ),
         const SizedBox(height: 12),

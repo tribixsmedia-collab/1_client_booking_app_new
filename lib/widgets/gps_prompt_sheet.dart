@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import '../theme.dart';
 import 'package:geolocator/geolocator.dart';
 
 class GpsPromptSheet extends StatelessWidget {
@@ -65,7 +66,7 @@ class GpsPromptSheet extends StatelessWidget {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE94E4E),
+                backgroundColor: AppColors.danger,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),

@@ -31,10 +31,7 @@ class CurationSectionWidget extends StatelessWidget {
                   children: [
                     Text(
                       section['title'] ?? '',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: displayHeading(size: 20),
                     ),
                     if ((section['subtitle'] as String?)?.isNotEmpty ??
                         false) ...[
@@ -192,7 +189,7 @@ class _CurationCardState extends State<_CurationCard> {
         child: Container(
           width: 170,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             color: Colors.grey.shade200,
           ),
           clipBehavior: Clip.antiAlias,
