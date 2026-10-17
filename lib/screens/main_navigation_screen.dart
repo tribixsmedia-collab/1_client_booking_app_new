@@ -9,6 +9,20 @@ import 'profile_tab.dart';
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
+  /// Which tab a pushed route has asked the shell to show.
+  ///
+  /// The desktop top bar is drawn on detail pages too, and "Home" there means
+  /// "leave this page and show the home tab" — but a pushed route cannot
+  /// reach this screen's state. It parks the index here and pops back to the
+  /// root, which is listening.
+  static final ValueNotifier<int> requestedTab = ValueNotifier<int>(0);
+
+  /// Pops back to the shell and switches it to [index].
+  static void openTab(BuildContext context, int index) {
+    requestedTab.value = index;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
   @override
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
@@ -24,8 +38,26 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ProfileTab(key: _profileKey, onOpenBookings: () => _onTabTapped(1)),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    MainNavigationScreen.requestedTab.addListener(_onTabRequested);
+  }
+
+  @override
+  void dispose() {
+    MainNavigationScreen.requestedTab.removeListener(_onTabRequested);
+    super.dispose();
+  }
+
+  void _onTabRequested() {
+    final index = MainNavigationScreen.requestedTab.value;
+    if (mounted && index != _currentIndex) _onTabTapped(index);
+  }
+
   void _onTabTapped(int index) {
     setState(() => _currentIndex = index);
+    MainNavigationScreen.requestedTab.value = index;
     if (index == 2) {
       _profileKey.currentState?.loadProfile();
     }

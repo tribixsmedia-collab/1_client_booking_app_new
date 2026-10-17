@@ -12,6 +12,9 @@ import '../utils/zone_gate.dart';
 import '../models/service_pricing.dart';
 import 'create_tender_screen.dart';
 import 'cart_screen.dart';
+import 'main_navigation_screen.dart';
+import '../widgets/web_top_nav.dart';
+import '../widgets/web_footer.dart';
 
 class ServiceDetailScreen extends StatefulWidget {
   final int serviceId;
@@ -724,6 +727,12 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   Widget build(BuildContext context) {
     final qty = _cart.getQuantity(widget.serviceId);
 
+    // A monitor gets its own composition: the page chrome stays put, the
+    // image is a contained panel rather than a banner, and the thing the
+    // visitor came to do sits in a column beside the reading, not below it.
+    // Phones and narrow windows fall through to the layout they always had.
+    if (isDesktopLayout(context)) return _desktopScaffold(qty);
+
     return Scaffold(
       body: DesktopCentered(
         child: CustomScrollView(
@@ -1098,6 +1107,392 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                 ),
               ),
             ),
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // Desktop web layout
+  // ---------------------------------------------------------------------
+
+  /// Width of the booking column. Fixed rather than a flex share so the card
+  /// keeps the same proportions whatever the window does; the reading column
+  /// takes the rest.
+  static const double _bookingColumnWidth = 380;
+
+  Widget _desktopScaffold(double qty) {
+    // No bottom cart bar here. On desktop the cart lives in the top bar,
+    // where it stays reachable from every page, so a second floating copy of
+    // it would be clutter.
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          WebTopNav(
+            currentIndex: -1,
+            onTabSelected: (index) =>
+                MainNavigationScreen.openTab(context, index),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: kDesktopContentWidth,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 18, 24, 56),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _desktopBreadcrumb(),
+                            const SizedBox(height: 22),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: _desktopReadingColumn()),
+                                const SizedBox(width: 32),
+                                SizedBox(
+                                  width: _bookingColumnWidth,
+                                  child: _desktopBookingColumn(qty),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  WebFooter(
+                    onOpenBookings: () =>
+                        MainNavigationScreen.openTab(context, 1),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Home / Category / This service. The first two are the way back out,
+  /// which a pushed detail page otherwise only offers through the arrow.
+  Widget _desktopBreadcrumb() {
+    const sep = Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8),
+      child: Text('›', style: TextStyle(color: AppColors.textMuted)),
+    );
+
+    return Row(
+      children: [
+        InkWell(
+          onTap: () => MainNavigationScreen.openTab(context, 0),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 4),
+            child: Text(
+              'Home',
+              style: TextStyle(fontSize: 13.5, color: AppColors.textGrey),
+            ),
+          ),
+        ),
+        sep,
+        InkWell(
+          onTap: () => Navigator.of(context).maybePop(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Text(
+              widget.categoryName,
+              style: const TextStyle(
+                fontSize: 13.5,
+                color: AppColors.textGrey,
+              ),
+            ),
+          ),
+        ),
+        sep,
+        Flexible(
+          child: Text(
+            widget.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textDark,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _desktopReadingColumn() {
+    final hasReviews =
+        _reviewData != null &&
+        (_reviewData!['total_reviews'] as int? ?? 0) > 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Image, contained. Stretched edge to edge it read as a banner and
+        // pushed everything else off the first screen.
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: SizedBox(
+            height: 420,
+            width: double.infinity,
+            child: (widget.imageUrl != null && widget.imageUrl!.isNotEmpty)
+                ? Image.network(
+                    widget.imageUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        Container(color: AppColors.surfaceAlt),
+                  )
+                : Container(color: AppColors.surfaceAlt),
+          ),
+        ),
+        const SizedBox(height: 26),
+
+        Text(
+          widget.name,
+          style: const TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w800,
+            height: 1.15,
+            letterSpacing: -0.8,
+            color: AppColors.textDark,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        Row(
+          children: [
+            if (hasReviews) ...[
+              const Icon(Icons.star, color: AppColors.accent, size: 18),
+              const SizedBox(width: 5),
+              Text(
+                ((_reviewData!['average_rating'] as num?) ?? 0)
+                    .toStringAsFixed(1),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14.5,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '(${_reviewData!['total_reviews']} reviews)',
+                style: const TextStyle(
+                  color: AppColors.textGrey,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(width: 14),
+            ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceAlt,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+              ),
+              child: Text(
+                widget.categoryName,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textBody,
+                ),
+              ),
+            ),
+            if (widget.durationMinutes != null) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceAlt,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Text(
+                  '${widget.durationMinutes} mins',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textBody,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+
+        // Once only. The phone layout calls this the HIGHLIGHTS section, but
+        // there is no separate highlights field behind it -- it is the same
+        // description -- so printing it twice here would just read as a bug.
+        if (widget.description.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          Text(
+            widget.description,
+            style: const TextStyle(
+              fontSize: 16,
+              height: 1.6,
+              color: AppColors.textBody,
+            ),
+          ),
+        ],
+
+        _buildProVendors(),
+
+        const SizedBox(height: 28),
+        _desktopCard(
+          title: 'Ratings & reviews',
+          child: _isLoadingReviews
+              ? const Center(child: CircularProgressIndicator())
+              : hasReviews
+              ? ReviewListWidget(
+                  averageRating: ((_reviewData!['average_rating'] as num?) ?? 0)
+                      .toDouble(),
+                  totalReviews: _reviewData!['total_reviews'] as int? ?? 0,
+                  reviews: _reviewData!['reviews'] as List<dynamic>? ?? [],
+                )
+              : const Text(
+                  'No reviews yet. Be the first to review!',
+                  style: TextStyle(color: AppColors.textGrey, fontSize: 14),
+                ),
+        ),
+      ],
+    );
+  }
+
+  /// A white panel with a Playfair heading, the shape the rest of the web
+  /// layout uses for its sections.
+  Widget _desktopCard({required String title, required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(28, 24, 28, 26),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: displayHeading(size: 21)),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _desktopBookingColumn(double qty) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.cardBackground,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.textDark.withValues(alpha: 0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _desktopPrice(),
+              const SizedBox(height: 20),
+              _buildBookingBox(qty),
+              _buildZoneNotice(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// The headline price, at the size it deserves when it is the first thing
+  /// in the booking column rather than a line in a stack.
+  Widget _desktopPrice() {
+    final discounted = _discountInfo != null && !_pricing.isQuoteOnly;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Flexible(
+              child: Text(
+                discounted
+                    ? _withUnit('₹${_discountedPrice.toStringAsFixed(0)}')
+                    : _pricing.priceLabel,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.8,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+            if (discounted) ...[
+              const SizedBox(width: 10),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  '₹${widget.price.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textGrey,
+                    decoration: TextDecoration.lineThrough,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        if (_discountInfo != null) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF5),
+              borderRadius: BorderRadius.circular(AppRadius.xs),
+              border: Border.all(color: const Color(0xFFA7F3D0)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.local_offer,
+                  color: AppColors.success,
+                  size: 14,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _discountInfo!['name'] ?? 'Discount applied',
+                  style: const TextStyle(
+                    color: AppColors.success,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 
