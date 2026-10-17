@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../utils/breakpoints.dart';
 import 'service_card.dart';
 
 /// A horizontal strip of services personal to this customer — "Recently
@@ -25,6 +26,11 @@ class PersonalizedRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (services.isEmpty) return const SizedBox.shrink();
+
+    // Roomier on a monitor. The phone keeps 150, which is sized so two cards
+    // and a hint of the third fit across a 375px screen.
+    final cardWidth = isDesktopLayout(context) ? 200.0 : 150.0;
+    final rowHeight = isDesktopLayout(context) ? 268.0 : 220.0;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
@@ -53,7 +59,7 @@ class PersonalizedRow extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 220,
+            height: rowHeight,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -61,7 +67,7 @@ class PersonalizedRow extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 final service = Map<String, dynamic>.from(services[index]);
-                final card = ServiceCard.fromJson(service);
+                final card = ServiceCard.fromJson(service, width: cardWidth);
                 final times = service['times_booked'] as int? ?? 0;
 
                 if (!showTimesBooked || times < 2) return card;

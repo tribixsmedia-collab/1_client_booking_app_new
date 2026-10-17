@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../utils/breakpoints.dart';
 import '../utils/image_decode.dart';
 
 class SpotlightSection extends StatelessWidget {
@@ -16,6 +17,13 @@ class SpotlightSection extends StatelessWidget {
   Widget build(BuildContext context) {
     if (spotlights.isEmpty) return const SizedBox.shrink();
 
+    // Bigger on a monitor, where there is room for it and the titles were
+    // being clipped mid-word. Left alone on phones: 280 is already most of
+    // a 375px screen, and widening it there would just hide the next card.
+    final desktop = isDesktopLayout(context);
+    final cardWidth = desktop ? 360.0 : 280.0;
+    final rowHeight = desktop ? 232.0 : 180.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -23,12 +31,12 @@ class SpotlightSection extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Text(
             'In the spotlight',
-            style: displayHeading(size: 18),
+            style: displayHeading(size: desktop ? 21 : 18),
           ),
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 180,
+          height: rowHeight,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -41,6 +49,8 @@ class SpotlightSection extends StatelessWidget {
                 subtitle: banner['subtitle'] ?? '',
                 imageUrl: banner['background_image'],
                 buttonText: banner['button_text'] ?? 'Book now',
+                width: cardWidth,
+                roomy: desktop,
                 onTap: () => onTap(Map<String, dynamic>.from(banner)),
               );
             },
@@ -57,6 +67,11 @@ class _SpotlightCard extends StatelessWidget {
   final String subtitle;
   final String? imageUrl;
   final String buttonText;
+  final double width;
+
+  /// Desktop sizing: a wider card with room for a second subtitle line and
+  /// slightly larger type.
+  final bool roomy;
   final VoidCallback onTap;
 
   const _SpotlightCard({
@@ -64,6 +79,8 @@ class _SpotlightCard extends StatelessWidget {
     required this.subtitle,
     required this.imageUrl,
     required this.buttonText,
+    required this.width,
+    required this.roomy,
     required this.onTap,
   });
 
@@ -72,7 +89,7 @@ class _SpotlightCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 280,
+        width: width,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: Colors.grey.shade200,
@@ -85,7 +102,7 @@ class _SpotlightCard extends StatelessWidget {
                 child: Image.network(
                   imageUrl!,
                   fit: BoxFit.cover,
-                  cacheWidth: decodeWidthFor(context, 280),
+                  cacheWidth: decodeWidthFor(context, width),
                   errorBuilder: (_, __, ___) =>
                       Container(color: Colors.grey.shade300),
                 ),
@@ -112,9 +129,9 @@ class _SpotlightCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 18,
+                      fontSize: roomy ? 20 : 18,
                       fontWeight: FontWeight.bold,
                       height: 1.2,
                     ),
@@ -122,14 +139,15 @@ class _SpotlightCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                    SizedBox(height: roomy ? 6 : 4),
                     Text(
                       subtitle,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 12,
+                        fontSize: roomy ? 13 : 12,
+                        height: 1.35,
                       ),
-                      maxLines: 1,
+                      maxLines: roomy ? 2 : 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],

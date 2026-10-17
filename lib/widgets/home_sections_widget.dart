@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../utils/breakpoints.dart';
 import '../screens/section_see_all_screen.dart';
 import 'promo_card_tile.dart';
 import 'service_card.dart';
@@ -119,7 +120,9 @@ class HomeSectionsWidget extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               SizedBox(
-                height: 220,
+                // Same desktop sizing as the personalised rows, so every
+                // service strip on the page measures the same.
+                height: isDesktopLayout(context) ? 268.0 : 220.0,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -127,6 +130,7 @@ class HomeSectionsWidget extends StatelessWidget {
                   separatorBuilder: (_, __) => const SizedBox(width: 12),
                   itemBuilder: (context, index) => ServiceCard.fromJson(
                     Map<String, dynamic>.from(items[index]),
+                    width: isDesktopLayout(context) ? 200.0 : 150.0,
                   ),
                 ),
               ),

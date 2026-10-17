@@ -28,6 +28,11 @@ class ServiceCard extends StatefulWidget {
   /// every service was before pricing types existed.
   final ServicePricing? pricing;
 
+  /// Card width. 150 is the phone size and the default; the desktop web rows
+  /// pass something larger, where 150 left the price wrapping onto two lines
+  /// beside the Add button.
+  final double width;
+
   const ServiceCard({
     super.key,
     required this.serviceId,
@@ -44,12 +49,13 @@ class ServiceCard extends StatefulWidget {
     this.finalPrice,
     this.discountAmount,
     this.pricing,
+    this.width = 150,
   });
 
   /// Builds a card straight from the service payload the API returns.
   /// Home sections, recently viewed and book again all send the same shape,
   /// so they all come through here.
-  factory ServiceCard.fromJson(Map<String, dynamic> json) {
+  factory ServiceCard.fromJson(Map<String, dynamic> json, {double width = 150}) {
     final discount = json['discount_info'] as Map<String, dynamic>?;
     return ServiceCard(
       serviceId: json['service_id'],
@@ -73,6 +79,7 @@ class ServiceCard extends StatefulWidget {
       discountAmount: discount != null
           ? double.tryParse('${discount['discount_amount']}')
           : null,
+      width: width,
     );
   }
 
@@ -219,7 +226,7 @@ class ServiceCardState extends State<ServiceCard> {
     return GestureDetector(
       onTap: _openDetail,
       child: Container(
-        width: 150,
+        width: widget.width,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -240,14 +247,15 @@ class ServiceCardState extends State<ServiceCard> {
                 top: Radius.circular(12),
               ),
               child: Container(
-                height: 110,
+                // Keeps the 150:110 proportion the phone card has.
+                height: widget.width * 0.733,
                 width: double.infinity,
                 color: Colors.grey.shade100,
                 child: widget.imageUrl != null && widget.imageUrl!.isNotEmpty
                     ? Image.network(
                         widget.imageUrl!,
                         fit: BoxFit.cover,
-                        cacheWidth: decodeWidthFor(context, 150),
+                        cacheWidth: decodeWidthFor(context, widget.width),
                         errorBuilder: (_, __, ___) => const Center(
                           child: Icon(
                             Icons.image,
