@@ -43,6 +43,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
+    - assets/assistant_bot.png
 
   # Brand typefaces, matched to the RNI Realestate web identity:
   # Manrope for every UI/body string, Playfair Display for display headings.
