@@ -8,6 +8,9 @@ import '../utils/image_decode.dart';
 import '../utils/profile_gate.dart';
 import '../widgets/pro_vendor_card.dart';
 import '../widgets/review_list_widget.dart';
+import '../widgets/web_footer.dart';
+import '../widgets/web_top_nav.dart';
+import 'main_navigation_screen.dart';
 import 'service_detail_screen.dart';
 
 /// A Pro Vendor's public profile.
@@ -261,6 +264,13 @@ class _ProVendorDetailScreenState extends State<ProVendorDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // A monitor gets its own composition: the page chrome stays put, the
+    // banner becomes a contained panel instead of a strip pinned across the
+    // window, and the booking action sits in a column beside the reading
+    // rather than in a bar along the bottom. Phones and narrow windows fall
+    // through to the layout they always had.
+    if (isDesktopLayout(context)) return _desktopScaffold();
+
     if (_notFound) {
       return Scaffold(
         appBar: AppBar(title: const Text('Pro Vendor')),
@@ -496,26 +506,7 @@ class _ProVendorDetailScreenState extends State<ProVendorDetailScreen> {
               spacing: 8,
               runSpacing: 8,
               children: categories
-                  .map<Widget>(
-                    (c) => Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        '$c',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  )
+                  .map<Widget>((c) => _categoryChip('$c'))
                   .toList(),
             ),
           ],
@@ -605,6 +596,22 @@ class _ProVendorDetailScreenState extends State<ProVendorDetailScreen> {
   Widget _divider() =>
       Container(width: 1, height: 32, color: Colors.grey.shade200);
 
+  Widget _categoryChip(String label) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: BoxDecoration(
+      color: AppColors.primary.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Text(
+      label,
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: AppColors.primary,
+      ),
+    ),
+  );
+
   Widget _buildReviews() {
     if (_isLoading && _reviewData == null) {
       return const Center(child: CircularProgressIndicator());
@@ -660,6 +667,516 @@ class _ProVendorDetailScreenState extends State<ProVendorDetailScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+  // ---------------------------------------------------------------------
+  // Desktop web layout
+  // ---------------------------------------------------------------------
+
+  /// Width of the booking column. Fixed rather than a flex share so the card
+  /// keeps its proportions whatever the window does; the reading column takes
+  /// whatever is left.
+  static const double _sidebarWidth = 360;
+
+  /// The banner lives inside a card here instead of spanning the window. Edge
+  /// to edge, an admin's wide upload became a letterbox strip and pushed the
+  /// name, the stats and the book button off the first screen.
+  static const double _desktopBannerHeight = 240;
+  static const double _desktopAvatarSize = 128;
+  static const double _desktopAvatarRing = 5;
+  static const double _desktopPadding = 32;
+
+  Widget _desktopScaffold() {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          WebTopNav(
+            currentIndex: -1,
+            onTabSelected: (index) =>
+                MainNavigationScreen.openTab(context, index),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: kDesktopContentWidth,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 18, 24, 56),
+                        child: _desktopContent(),
+                      ),
+                    ),
+                  ),
+                  WebFooter(
+                    onOpenBookings: () =>
+                        MainNavigationScreen.openTab(context, 1),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The loading and missing states stay inside the page chrome: on desktop a
+  /// bare spinner on an empty window reads as a broken site.
+  Widget _desktopContent() {
+    if (_notFound) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 120),
+        child: Center(
+          child: Text(
+            'This pro vendor is no longer available.',
+            style: TextStyle(color: AppColors.textGrey),
+          ),
+        ),
+      );
+    }
+
+    final vendor = _vendor;
+    if (vendor == null) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 160),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _desktopBreadcrumb(vendor),
+        const SizedBox(height: 18),
+        _desktopHeaderCard(vendor),
+        const SizedBox(height: 24),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _desktopReadingColumn(vendor)),
+            const SizedBox(width: 28),
+            SizedBox(width: _sidebarWidth, child: _desktopSidebar(vendor)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Home, then this pro. There is no middle crumb to offer: the page is
+  /// reached from a home row, from a banner and from a service page alike,
+  /// and only the browser's own back knows which.
+  Widget _desktopBreadcrumb(Map<String, dynamic> vendor) {
+    return Row(
+      children: [
+        InkWell(
+          onTap: () => MainNavigationScreen.openTab(context, 0),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 4),
+            child: Text(
+              'Home',
+              style: TextStyle(fontSize: 13.5, color: AppColors.textGrey),
+            ),
+          ),
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8),
+          child: Text('›', style: TextStyle(color: AppColors.textMuted)),
+        ),
+        Flexible(
+          child: Text(
+            (vendor['name'] as String?) ?? '',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textDark,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Banner, avatar and everything that identifies the pro, in one panel.
+  ///
+  /// The avatar is placed by a Stack rather than nudged up with a negative
+  /// margin, which Flutter has no notion of; the Column underneath reserves
+  /// the half that hangs down over the identity block.
+  Widget _desktopHeaderCard(Map<String, dynamic> vendor) {
+    final banner = vendor['banner'] as String?;
+    final name = (vendor['name'] as String?) ?? '';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: _desktopBannerHeight,
+                child: (banner != null && banner.isNotEmpty)
+                    ? Image.network(
+                        banner,
+                        fit: BoxFit.cover,
+                        cacheWidth: decodeWidthFor(
+                          context,
+                          kDesktopContentWidth,
+                        ),
+                        errorBuilder: (_, __, ___) => _gradientBackdrop(),
+                      )
+                    : _gradientBackdrop(),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  _desktopPadding,
+                  0,
+                  _desktopPadding,
+                  28,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: _desktopAvatarSize / 2 + 20),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(child: _desktopIdentity(vendor)),
+                        const SizedBox(width: 28),
+                        _desktopStatsStrip(vendor),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          Positioned(
+            left: _desktopPadding - _desktopAvatarRing,
+            top: _desktopBannerHeight - _desktopAvatarSize / 2,
+            child: Container(
+              padding: const EdgeInsets.all(_desktopAvatarRing),
+              decoration: const BoxDecoration(
+                color: AppColors.cardBackground,
+                shape: BoxShape.circle,
+              ),
+              child: ProVendorAvatar(
+                photoUrl: vendor['photo'] as String?,
+                name: name,
+                size: _desktopAvatarSize,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _desktopIdentity(Map<String, dynamic> vendor) {
+    final name = (vendor['name'] as String?) ?? '';
+    final title = (vendor['pro_title'] as String?) ?? '';
+    final tagline = (vendor['pro_tagline'] as String?) ?? '';
+    final serviceArea = (vendor['service_area'] as String?) ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
+                  height: 1.15,
+                  letterSpacing: -0.8,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const ProBadge(fontSize: 12),
+          ],
+        ),
+
+        if (title.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+            ),
+          ),
+        ],
+
+        if (tagline.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            tagline,
+            style: const TextStyle(
+              fontSize: 14.5,
+              height: 1.5,
+              color: AppColors.textGrey,
+            ),
+          ),
+        ],
+
+        if (serviceArea.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(
+                Icons.place_outlined,
+                size: 16,
+                color: AppColors.textGrey,
+              ),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  serviceArea,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    color: AppColors.textGrey,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// The same three figures as the phone card, but sat beside the name rather
+  /// than under it: a full-width band of three numbers across 1240px is
+  /// mostly empty space.
+  Widget _desktopStatsStrip(Map<String, dynamic> vendor) {
+    final rating = ((vendor['average_rating'] as num?) ?? 0).toDouble();
+    final reviews = (vendor['total_reviews'] as int?) ?? 0;
+    final years = (vendor['experience_years'] as int?) ?? 0;
+    final jobs = (vendor['completed_jobs'] as int?) ?? 0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _desktopStatCell(
+            reviews > 0 ? rating.toStringAsFixed(1) : '--',
+            reviews > 0
+                ? '$reviews review${reviews == 1 ? '' : 's'}'
+                : 'No reviews',
+          ),
+          _desktopStatDivider(),
+          _desktopStatCell('$years', 'Yr${years == 1 ? '' : 's'} experience'),
+          _desktopStatDivider(),
+          _desktopStatCell('$jobs', 'Jobs done'),
+        ],
+      ),
+    );
+  }
+
+  Widget _desktopStatCell(String value, String label) => SizedBox(
+    width: 116,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+            color: AppColors.textDark,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 11.5, color: AppColors.textGrey),
+        ),
+      ],
+    ),
+  );
+
+  Widget _desktopStatDivider() =>
+      Container(width: 1, height: 34, color: AppColors.border);
+
+  Widget _desktopReadingColumn(Map<String, dynamic> vendor) {
+    final bio = (vendor['pro_bio'] as String?) ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (bio.isNotEmpty) ...[
+          _desktopCard(
+            title: 'About',
+            child: Text(
+              bio,
+              style: const TextStyle(
+                fontSize: 15.5,
+                height: 1.65,
+                color: AppColors.textBody,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        _desktopCard(title: 'Ratings & reviews', child: _desktopReviews()),
+      ],
+    );
+  }
+
+  /// What the pro covers and the way to book them, kept beside the reading so
+  /// the button is on the first screen instead of below the reviews.
+  Widget _desktopSidebar(Map<String, dynamic> vendor) {
+    final firstName = ((vendor['name'] as String?) ?? '').split(' ').first;
+    final categories = (vendor['categories'] as List<dynamic>?) ?? [];
+    final label = widget.bookServiceName != null
+        ? 'Book ${widget.bookServiceName} with $firstName'
+        : 'Book a service with $firstName';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.cardBackground,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.textDark.withValues(alpha: 0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Book with $firstName', style: displayHeading(size: 20)),
+              const SizedBox(height: 8),
+              Text(
+                widget.bookServiceId != null
+                    ? 'They stay selected as your preferred pro while you '
+                          'finish booking this service.'
+                    : 'Pick one of their services and they come along as your '
+                          'preferred pro.',
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  height: 1.55,
+                  color: AppColors.textGrey,
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _bookWithThisPro,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        if (categories.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          _desktopCard(
+            title: 'Works on',
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: categories
+                  .map<Widget>((c) => _categoryChip('$c'))
+                  .toList(),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _desktopReviews() {
+    if (_isLoading && _reviewData == null) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final data = _reviewData;
+    final total = (data?['total_reviews'] as int?) ?? 0;
+
+    if (data == null || total == 0) {
+      return const Text(
+        'No reviews yet for this pro.',
+        style: TextStyle(color: AppColors.textGrey, fontSize: 14),
+      );
+    }
+
+    return ReviewListWidget(
+      averageRating: ((data['average_rating'] as num?) ?? 0).toDouble(),
+      totalReviews: total,
+      ratingBreakdown: data['rating_breakdown'] as Map<String, dynamic>?,
+      reviews: (data['reviews'] as List<dynamic>?) ?? [],
+    );
+  }
+
+  /// A white panel with a Playfair heading, the shape the rest of the web
+  /// layout uses for its sections.
+  Widget _desktopCard({required String title, required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(28, 24, 28, 26),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: displayHeading(size: 21)),
+          const SizedBox(height: 16),
+          child,
+        ],
       ),
     );
   }
