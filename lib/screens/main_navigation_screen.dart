@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/breakpoints.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/assistant_fab.dart';
 import '../widgets/web_top_nav.dart';
 import 'home_tab.dart';
 import 'my_bookings_screen.dart';
@@ -78,6 +79,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         ],
       ),
+      // On every tab, not just Help & Support: most of what the assistant
+      // answers is asked while browsing. Scaffold keeps it clear of the
+      // bottom tabs on phones on its own.
+      floatingActionButton: const AssistantFab(),
       bottomNavigationBar: desktop
           ? null
           : AppBottomNav(currentIndex: _currentIndex, onTap: _onTabTapped),
