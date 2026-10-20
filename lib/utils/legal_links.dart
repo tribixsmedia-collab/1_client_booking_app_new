@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../config.dart';
+import 'external_url.dart';
 
 /// Links to the public legal pages the backend serves.
 ///
@@ -41,20 +41,9 @@ class LegalLinks {
   /// Opens [url], telling the user if nothing can handle it.
   ///
   /// A silently dead "Privacy Policy" row is the failure a store reviewer
-  /// finds, so the failure is surfaced rather than swallowed.
-  static Future<void> open(BuildContext context, String url) async {
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    try {
-      final ok = await launchUrl(
-        Uri.parse(url),
-        mode: LaunchMode.externalApplication,
-        webOnlyWindowName: '_blank',
-      );
-      if (!ok) throw Exception('no handler');
-    } catch (_) {
-      messenger?.showSnackBar(
-        SnackBar(content: Text('Could not open $url')),
-      );
-    }
-  }
+  /// finds, so the failure is surfaced rather than swallowed. The launching
+  /// itself now lives in [openExternalUrl], which the vendor-site link uses
+  /// too -- there is nothing legal-specific about it.
+  static Future<void> open(BuildContext context, String url) =>
+      openExternalUrl(context, url);
 }

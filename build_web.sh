@@ -2,8 +2,9 @@
 #
 # Build the customer app for the web and package it for the server.
 #
-#   ./build_web.sh                        # uses the sslip API host below
+#   ./build_web.sh                        # uses the sslip hosts below
 #   API_BASE_URL=https://api.example.com/api ./build_web.sh
+#   VENDOR_APP_URL=https://vendor.example.com ./build_web.sh
 #
 # Produces build/web/ and homeservice-web.tar.gz next to it. Upload steps are
 # printed at the end; see home_service_backend/deploy/README.md.
@@ -15,6 +16,11 @@ set -euo pipefail
 # a production build at a laptop is the classic way to ship a site that works
 # on the machine that built it and nowhere else.
 API_BASE_URL="${API_BASE_URL:-https://13-200-180-192.sslip.io/api}"
+
+# Where the "Become a vendor" row in Profile sends people. Compiled in for the
+# same reason as the API address, and separate from it because the two are not
+# the same host and need not stay on the same domain.
+VENDOR_APP_URL="${VENDOR_APP_URL:-https://vendor.13-200-180-192.sslip.io}"
 
 cd "$(dirname "$0")"
 
@@ -30,7 +36,10 @@ case "$API_BASE_URL" in
 esac
 
 echo "==> Building against $API_BASE_URL"
-flutter build web --release --dart-define=API_BASE_URL="$API_BASE_URL"
+echo "==> Vendor site: $VENDOR_APP_URL"
+flutter build web --release \
+    --dart-define=API_BASE_URL="$API_BASE_URL" \
+    --dart-define=VENDOR_APP_URL="$VENDOR_APP_URL"
 
 # Flutter copies web/ into build/web/ but SKIPS dotfiles, so .htaccess never
 # arrives on its own. Only Apache hosts (Hostinger, cPanel) read it; nginx

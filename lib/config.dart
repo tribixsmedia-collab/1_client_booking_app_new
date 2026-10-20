@@ -31,6 +31,21 @@ const String kApiBaseUrl = String.fromEnvironment(
   defaultValue: "http://192.168.1.9:8000/api",
 );
 
+/// Where a customer who wants to take work instead of booking it is sent.
+///
+/// The vendor app is a separate site with its own signup, so this is a plain
+/// link out rather than anything in this app. Compiled in like [kApiBaseUrl]
+/// and overridden the same way:
+///   flutter build web --dart-define=VENDOR_APP_URL=https://vendor.example.com
+///
+/// Deliberately not derived from [kApiBaseUrl]. The two happen to share a
+/// domain today, but guessing a hostname from another one is how a live
+/// "Become a vendor" row quietly turns into a dead link the day the API moves.
+const String kVendorAppUrl = String.fromEnvironment(
+  'VENDOR_APP_URL',
+  defaultValue: 'https://vendor.13-200-180-192.sslip.io',
+);
+
 /// The wordmark shown when the backend has no branding set.
 ///
 /// An admin can override the name (and the logo) from the dashboard's

@@ -4,6 +4,7 @@ import '../config.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/sign_in_prompt.dart';
+import '../utils/external_url.dart';
 import '../utils/legal_links.dart';
 import '../utils/location_update.dart';
 import '../widgets/refer_banner.dart';
@@ -384,6 +385,18 @@ class ProfileTabState extends State<ProfileTab> {
             label: 'Help & support',
             onTap: () => _open(const SupportScreen()),
           ),
+          // For the customer who wants to take work rather than book it.
+          // Vendors are a separate app with their own signup and their own
+          // admin review, so this hands them over to that site rather than
+          // pretending the two accounts are one -- a phone number can hold
+          // both, and signing up there does not touch the account they are
+          // looking at here.
+          _MenuRow(
+            icon: Icons.handyman_outlined,
+            label: 'Become a vendor',
+            subtitle: 'Offer your services on $kAppName',
+            onTap: () => openExternalUrl(context, kVendorAppUrl),
+          ),
           // Google Play requires the privacy policy and a route to request
           // account deletion to be reachable from inside the app, not only
           // from the store listing. They open in a browser so the address bar
@@ -472,6 +485,11 @@ class _QuickTile extends StatelessWidget {
 class _MenuRow extends StatelessWidget {
   final IconData icon;
   final String label;
+
+  /// One line under the label, for a row whose label alone does not say what
+  /// tapping it does. Every other row here opens the obvious thing.
+  final String? subtitle;
+
   final VoidCallback onTap;
   final Color? color;
   final bool showChevron;
@@ -480,6 +498,7 @@ class _MenuRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.subtitle,
     this.color,
     this.showChevron = true,
   });
@@ -497,13 +516,30 @@ class _MenuRow extends StatelessWidget {
             Icon(icon, size: 23, color: tint),
             const SizedBox(width: 20),
             Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: tint,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: tint,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle!,
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.3,
+                        color: AppColors.textGrey,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             if (showChevron)
