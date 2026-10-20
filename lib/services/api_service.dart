@@ -884,6 +884,89 @@ class ApiService {
     }
   }
 
+  // ---------- Assistant ----------
+  //
+  // The in-app assistant. Sits in front of Support rather than beside it: it
+  // answers what it can from the customer's own bookings and payments, and
+  // hands anything else to a real ticket, which is why these live next to the
+  // ticket calls above.
+  //
+  // Nothing here tells the server who is asking. The audience comes from the
+  // token, so there is no field this app could send that would make the
+  // assistant answer as somebody else.
+
+  /// Everything the chat screen needs to open: whether the assistant is on,
+  /// its greeting, the starter chips, and the running conversation.
+  ///
+  /// A switched-off assistant comes back as `{'enabled': false}` rather than
+  /// an error, so the screen can say so plainly instead of looking broken.
+  static Future<Map<String, dynamic>> getAssistantSession() async {
+    final res = await _authorizedGet('$kApiBaseUrl/assistant/session/');
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    if (res.statusCode == 403) return {'enabled': false};
+    throw Exception('Could not open the assistant.');
+  }
+
+  /// Puts one question to the assistant.
+  ///
+  /// Returns the stored reply plus `suggestions` and `can_escalate`. A 429
+  /// means the daily limit was reached; its message is the server's own
+  /// wording, so it is passed through rather than replaced.
+  static Future<Map<String, dynamic>> askAssistant(String question) async {
+    var headers = await _authHeaders();
+    final body = jsonEncode({'question': question});
+    var res = await http.post(
+      Uri.parse('$kApiBaseUrl/assistant/ask/'),
+      headers: headers,
+      body: body,
+    );
+    if (res.statusCode == 401 && await _tryRefreshToken()) {
+      headers = await _authHeaders();
+      res = await http.post(
+        Uri.parse('$kApiBaseUrl/assistant/ask/'),
+        headers: headers,
+        body: body,
+      );
+    }
+
+    if (res.statusCode == 200) return jsonDecode(res.body);
+
+    // 429 (daily limit) and 403 (switched off mid-chat) both carry a sentence
+    // written for the customer. Showing ours instead would be worse.
+    try {
+      final error = jsonDecode(res.body);
+      if (error is Map && error['error'] is String) {
+        throw Exception(error['error']);
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+    }
+    throw Exception('The assistant could not answer just now.');
+  }
+
+  /// Hands the running chat to the support team and returns the new ticket id.
+  ///
+  /// Safe to call twice: the server answers the second call with the ticket
+  /// the first one opened rather than raising another.
+  static Future<Map<String, dynamic>> escalateAssistantChat() async {
+    var headers = await _authHeaders();
+    var res = await http.post(
+      Uri.parse('$kApiBaseUrl/assistant/escalate/'),
+      headers: headers,
+    );
+    if (res.statusCode == 401 && await _tryRefreshToken()) {
+      headers = await _authHeaders();
+      res = await http.post(
+        Uri.parse('$kApiBaseUrl/assistant/escalate/'),
+        headers: headers,
+      );
+    }
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      return jsonDecode(res.body);
+    }
+    throw Exception('Could not pass this chat to support.');
+  }
+
   // ---------- Payments (Razorpay) ----------
 
   /// Opens a Razorpay order for a booking and returns what Checkout needs:

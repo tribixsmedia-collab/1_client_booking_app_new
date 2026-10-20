@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
 import '../screens/ticket_detail_screen.dart';
+import 'assistant_screen.dart';
 
 class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key});
@@ -65,7 +66,11 @@ class _SupportScreenState extends State<SupportScreen> {
       ),
       body: DesktopCentered(
         maxWidth: kDesktopFormWidth,
-        child: _isLoading
+        child: Column(
+          children: [
+            _assistantCard(),
+            Expanded(
+              child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _tickets.isEmpty
             ? Center(
@@ -180,6 +185,63 @@ class _SupportScreenState extends State<SupportScreen> {
                   },
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The assistant, offered before the ticket list.
+  ///
+  /// Most of what lands in Support is a question the assistant can answer off
+  /// the customer's own booking or payment -- "where is my booking", "did my
+  /// payment go through" -- so it goes above the list rather than beside it.
+  /// Raising a ticket is still one tap away, and the assistant hands over to
+  /// one itself when it cannot help.
+  Widget _assistantCard() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const AssistantScreen()),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: AppColors.brandGradient),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.chat_bubble_outline,
+                  color: Colors.white, size: 26),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ask the assistant',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Instant answers on your bookings, payments and prices.',
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.white70),
+            ],
+          ),
+        ),
       ),
     );
   }
